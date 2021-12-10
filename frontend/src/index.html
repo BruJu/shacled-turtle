@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <script type="module" src="app.ts"></script>
     <style>
       table, tr, td {
         vertical-align: text-top;
       }
+
+      #rdf-as-dot {
+        width: 800px;
+        height: 600px;
+        overflow: scroll;
+      }      
     </style>
   </head>
   <body>
@@ -25,11 +30,18 @@
         <td style="width: 40%">
           <h2>RDF Graph</h2>
           <p><textarea id="prec_answer"></textarea></p>
+
+          <div id="rdf-as-dot"></div>
+
+          <p><textarea id="dot"></textarea></p>
         </td>
       </tr>
     </table>
 
 
-
+    <script src="//d3js.org/d3.v4.min.js"></script>
+    <script src="//viz-js.com/bower_components/viz.js/viz-lite.js"></script>
+    <script src="//github.com/magjac/d3-graphviz/releases/download/v0.0.4/d3-graphviz.min.js"></script>
+    <script type="module" src="app.ts"></script>
   </body>
 </html>

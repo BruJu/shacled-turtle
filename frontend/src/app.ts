@@ -1,6 +1,7 @@
 import axios from "axios";
 import * as n3 from 'n3';
 import * as rdfstring from 'rdf-string';
+import * as RDF from '@rdfjs/types';
 
 const data = [
   {
@@ -54,8 +55,36 @@ axios.post('rest/transform_graph', data)
   }
 
   (document.getElementById("prec_answer") as HTMLTextAreaElement).value = response.data.quads as string;
+
+  drawRDFGraph("#rdf-as-dot", quads);
 })
 .catch(error => console.log(error));
+
+function drawRDFGraph(name: string, quads: RDF.Quad[]) {
+  const dotRepresentation = rdfToDot(quads);
+
+  // @ts-ignore
+  let d = d3 as any;
+
+  d.select(name).graphviz().renderDot(dotRepresentation);
+
+  (document.getElementById("dot") as HTMLTextAreaElement).value = dotRepresentation as string;
+}
+
+function esc(s: string): string {
+  return s.replaceAll('"', '\\"');
+}
+
+function rdfToDot(quads: RDF.Quad[]): string {
+  let dotLines: string[] = [];
+
+  for (const quad of quads) {
+    const { subject, predicate, object } = rdfstring.quadToStringQuad(quad);
+    dotLines.push(`"${(subject)}" -> "${esc(object)}" [label="${(predicate)}"]`);
+  }
+
+  return "digraph {\n " + dotLines.join("\n") + "\n } ";
+}
 
 
 console.log("!!!");
