@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
     <style>
       table, tr, td {
         vertical-align: text-top;
@@ -10,33 +11,58 @@
         width: 800px;
         height: 600px;
         overflow: scroll;
-      }      
+      }
     </style>
   </head>
   <body>
-    <h1>PREC demo</h1>
+    <div>
+      <div class="block has-text-centered">
+        <h1 class="title is-1">PREC demo</h1>
+      </div>
 
-
-    <table>
-      <tr>
-        <td style="width: 40%">
-          <h2>Request</h2>
-          <h3>Property Graph</h3>
-          <p><textarea id="pg_request"></textarea></p>
+      <div class="has-text-centered">
+        <button class="button is-primary" id="convert_button">Convert</button>
+      </div>
       
-          <h4>Context</h4>
-          <p>No context</p>
-        </td>
-        <td style="width: 40%">
-          <h2>RDF Graph</h2>
-          <p><textarea id="prec_answer"></textarea></p>
+      <div class="columns">
+        <div class="column box">
+          <h2 class="title is-2">Input</h2>
 
-          <div id="rdf-as-dot"></div>
+          <div class="box">
+            <h3 class="subtitle is-3">Property Graph</h3>
+            <p><textarea class="textarea" id="pg_request" rows="10"></textarea></p>
+          </div>
 
-          <p><textarea id="dot"></textarea></p>
-        </td>
-      </tr>
-    </table>
+          <div class="box">
+            <h3 class="subtitle is-3">Context</h3>
+
+            <p>
+              <textarea
+                class="textarea"
+                id="input_context"
+                rows="10"
+              ></textarea>
+            </p>
+
+          </div>
+        </div>
+
+        <div class="column box">
+          <h2 class="title is-2">Output RDF Graph</h2>
+
+            <p><textarea class="textarea" id="prec_answer" rows="10"></textarea></p>
+
+            <p>
+              <label class="checkbox">
+                <input type="checkbox" id="show_boring_types" checked="checked">
+                Show PREC/PGO types
+              </label>
+            </p>
+            <div id="rdf-as-dot"></div>
+        </div>
+
+      </div>
+    </div>
 
 
     <script src="//d3js.org/d3.v4.min.js"></script>

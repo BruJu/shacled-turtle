@@ -1,0 +1,30 @@
+[
+  {
+    "src": {
+      "identity": 8,
+      "labels": ["Person"],
+      "properties": {
+        "name": "Emil Eifrem",
+        "born": 1978
+      }
+    },
+    "edge": {
+      "identity": 7,
+      "start": 8,
+      "end": 0,
+      "type": "ACTED_IN",
+      "properties": {
+        "roles": ["Emil"]
+      }
+    },
+    "dest": {
+      "identity": 0,
+      "labels": ["Movie"],
+      "properties": {
+        "tagline": "Welcome to the Real World",
+        "title": "The Matrix",
+        "released": 1999
+      }
+    }
+  }
+]

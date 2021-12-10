@@ -1,6 +1,7 @@
 import express from 'express';
 import * as PREC from 'prec';
 import * as n3 from 'n3';
+import * as RDF from '@rdfjs/types';
 
 async function main() {
   // Setup app
@@ -13,7 +14,15 @@ async function main() {
 
   app.post('/rest/transform_graph', (req, res) => {
     try {
-      const rdfgraph = PREC.cypherJsontoRDF(req.body);
+      let contextQuads: RDF.Quad[] | undefined = undefined;
+      if (req.body.context !== undefined) {
+        console.log("A context appeared!");
+        console.log(req.body.context);
+        contextQuads = new n3.Parser().parse(req.body.context);
+        console.log("I parsed it");
+      }
+
+      const rdfgraph = PREC.cypherJsontoRDF(req.body.pgAsCypher, contextQuads);
 
       const serializer = new n3.Writer();
       serializer.addQuads([...rdfgraph]);
