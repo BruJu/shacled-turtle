@@ -3,6 +3,7 @@ import * as n3 from 'n3';
 import * as rdfstring from 'rdf-string';
 import * as RDF from '@rdfjs/types';
 import TermMap from '@rdfjs/term-map';
+import SuggestionDatabase from "./SuggestionDatabase";
 
 import namespace from '@rdfjs/namespace';
 
@@ -165,3 +166,7 @@ convert();
 
 
 getHtmlElement<HTMLButtonElement>('convert_button').addEventListener('click', convert);
+
+const suggestionsDB = new SuggestionDatabase();
+suggestionsDB.attachTo(document.getElementById("input_context") as any);
+

@@ -1,3 +1,4 @@
 {
-  "/rest": { "target": "http://localhost:12344/" }
+  "/rest": { "target": "http://localhost:12344/" },
+  "/res":  { "target": "http://localhost:12344/" },
 }

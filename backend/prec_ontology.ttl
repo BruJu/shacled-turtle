@@ -1,0 +1,27 @@
+@prefix prec:  <http://bruy.at/prec#>       .
+@prefix pvar:  <http://bruy.at/prec-trans#> .
+@prefix pgo:   <http://ii.uwb.edu.pl/pgo#>  .
+@prefix rdf:  <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#>       .
+
+prec:UISuggestable a rdfs:Class ;
+  rdfs:comment "Something that may be suggested"@en .
+
+prec:UISuggestablePredicate a rdfs:Class ;
+  rdfs:comment "The class of IRIs that may be suggested to be used in predicate position"@en .
+
+prec:UISuggestableType a rdfs:Class ;
+  rdfs:comment "The class of possibles types that may be usefull in PREC contexts"@en .
+
+
+prec:UISuggestablePredicate rdfs:subClassOf prec:UISuggestable .
+prec:UISuggestableType rdfs:subClassOf prec:UISuggestable .
+
+prec:Edges a prec:UISuggestable ;
+  rdfs:comment "All edges of the PG. Used as the subjet of a triple 'prec:Edges prec:templatedBy ...'" .
+
+prec:templatedBy a prec:UISuggestable .
+prec:Relationships a prec:UISuggestable .
+prec:RdfStarUnique a prec:UISuggestable .
+prec:RdfStarOccurrence a prec:UISuggestable .
+prec:RDFReification a prec:UISuggestable .
