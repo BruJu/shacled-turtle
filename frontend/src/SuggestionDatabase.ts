@@ -1,99 +1,114 @@
 import * as RDF from '@rdfjs/types';
-import { Store, Parser, DataFactory } from 'n3';
+import { Store, Parser } from 'n3';
 import axios from 'axios';
-import Tribute from "tributejs";
-import namespace from '@rdfjs/namespace';
+import Tribute, { TributeCollection, TributeItem } from "tributejs";
+import { ns } from './PRECNamespace';
 
-const ns = {
-  rdf : namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#", { factory: DataFactory }),
-  prec: namespace("http://bruy.at/prec#"                       , { factory: DataFactory }),
-  pgo : namespace("http://ii.uwb.edu.pl/pgo#"                  , { factory: DataFactory })
-};
-
-type OntologyMember = {
+/**
+ * A member of the ontology, ie a term that may be recommanded by the context
+ * editor
+ */
+ type OntologyMember = {
   key: string,
   value: string,
+  prefix: string,
+  suffix: string,
   namedNode: RDF.NamedNode,
   description?: RDF.Literal
 };
 
-function toTributeValue(prefix: keyof typeof ns, namedNode: RDF.NamedNode, store: Store): OntologyMember {
-  let result: OntologyMember = {
-    key: namedNode.value,
-    value: namedNode.value.substr(ns[prefix][''].value.length),
-    namedNode: namedNode,
-  }
-
-  return result;
+function isDefined<T>(t: T | undefined): t is T {
+  return t !== undefined;
 }
 
-function findPrefix(term: RDF.Quad_Subject): (keyof typeof ns) | undefined {
-  if (term.termType !== 'NamedNode') return undefined;
+export default async function attachContextAutoCompletitionTo(elementId: string) {
+  try {
+    const answer = await axios.get('res/prec_ontology.ttl');
 
-  for (const [prefix, prefixNamespace] of Object.entries(ns)) {
-    if (term.value.startsWith(prefixNamespace[''].value)) {
-      return prefix as (keyof typeof ns);
+    if (answer.status !== 200) {
+      console.error("Error when trying to get the ontology: Status #" + answer.status);
+      return;
+    }
+
+    const store = new Store(new Parser().parse(answer.data));
+
+    const values = store.getQuads(null, ns.rdf.type, ns.prec.UISuggestable, null)
+    .map(quad => toTributeValue(quad.subject, store))
+    .filter(isDefined);
+
+    const collections: TributeCollection<OntologyMember>[] = Object.keys(ns)
+    .map(prefixName => ({
+      trigger: prefixName + ":",
+      values: values.filter(v => v.prefix === prefixName).map(v => v.value),
+      selectTemplate(item: TributeItem<OntologyMember> | undefined) {
+        if (item === undefined) return '';
+        return prefixName + ":" + item.original.value;
+      },
+      selectClass: "selectedautocomplete",
+      noMatchTemplate: undefined,
+      menuItemTemplate(item: TributeItem<OntologyMember>) {
+        let s = item.original.prefix + ":"
+          + "<strong>" + item.original.suffix + "</strong>";
+        if ('description' in item.original) {
+          s += " - " + item.original.description!.value;
+        }
+        return s;
+      }
+    }))
+    .filter(collection => collection.values.length !== 0);
+
+    console.log(collections);
+
+    const tribute = new Tribute({ collection: collections as any });
+    tribute.attach(document.getElementById(elementId)!);
+
+  } catch (error) {
+    console.error("Error during the ontology loading");
+    console.error(error);
+  }
+}
+
+
+
+/**
+ * Transforms a named node into an objet suitable to be integrated into the TributeJS
+ * list for autocompletion.
+ * @param namedNode 
+ * @param store 
+ * @returns 
+ */
+function toTributeValue(namedNode: RDF.Quad_Subject, store: Store)
+: { prefix: string, value: OntologyMember } | undefined {
+  if (namedNode.termType !== 'NamedNode') return undefined;
+
+  const nsAsArray = Object.entries(ns);
+
+  let collectionId = null;
+  for (let i = 0; i != nsAsArray.length && collectionId === null; ++i) {
+    const notShortenedPrefix = nsAsArray[i][1][''].value;
+    if (namedNode.value.startsWith(notShortenedPrefix)) {
+      collectionId = i;
     }
   }
 
-  return undefined;
-}
+  if (collectionId === null) return undefined;
+  
+  const [prefix, prefixNamespace] = nsAsArray[collectionId];
+  const unshortenedPrefix = prefixNamespace[''].value;
+  
+  let result: OntologyMember = {
+    key: namedNode.value,
+    prefix: prefix as keyof typeof ns,
+    value: namedNode.value.substr(unshortenedPrefix.length),
+    suffix: namedNode.value.substr(unshortenedPrefix.length),
+    namedNode: namedNode,
+  };
 
-
-export default class SuggestionDatabase {
-  _tribute: Tribute<OntologyMember>;
-
-  constructor() {
-    //this._database = new Store();
-    this._tribute = new Tribute<OntologyMember>({
-      trigger: "prec:",
-      values: [
-
-      ],
-      searchOpts: {
-        pre: '<li>',
-        post: '</li>',
-        skip: false
-      }
-    });
-
-    axios.get('res/prec_ontology.ttl')
-    .then(answer => {
-      if (answer.status !== 200) {
-        console.error("Error when trying to get the ontology: Status #" + answer.status);
-        return;
-      }
-
-      const store = new Store(new Parser().parse(answer.data));
-
-      for (const quad of store.getQuads(null, ns.rdf.type, ns.prec.UISuggestable, null)) {
-        const prefix = findPrefix(quad.subject);
-        if (prefix === undefined) continue;
-
-        let collection_id: number | undefined = undefined;
-
-        if (prefix === "prec") {
-          collection_id = 0;
-        } else if (prefix === "pgo") {
-          collection_id = 1;
-        }
-
-        if (collection_id === undefined) continue;
-        if (quad.subject.termType !== 'NamedNode') continue;
-
-        const value = toTributeValue(prefix, quad.subject, store);
-
-        this._tribute.append(collection_id, [ value ]);
-      }
-    })
-    .catch(err => {
-      console.error("Error when trying to get the ontology");
-      console.error(err);
-    });
+  const descriptions = store.getQuads(namedNode, ns.rdfs.comment, null, null);
+  if (descriptions.length > 0 && descriptions[0].object.termType === 'Literal') {
+    result.description = descriptions[0].object;
   }
 
-  attachTo(textarea: HTMLTextAreaElement) {
-    this._tribute.attach(textarea);
-  }
-
+  return { prefix: nsAsArray[collectionId][0], value: result };
 }
+

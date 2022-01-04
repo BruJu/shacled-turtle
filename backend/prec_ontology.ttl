@@ -20,8 +20,18 @@ prec:UISuggestableType rdfs:subClassOf prec:UISuggestable .
 prec:Edges a prec:UISuggestable ;
   rdfs:comment "All edges of the PG. Used as the subjet of a triple 'prec:Edges prec:templatedBy ...'" .
 
-prec:templatedBy a prec:UISuggestable .
-prec:Relationships a prec:UISuggestable .
-prec:RdfStarUnique a prec:UISuggestable .
-prec:RdfStarOccurrence a prec:UISuggestable .
-prec:RDFReification a prec:UISuggestable .
+prec:templatedBy a prec:UISuggestable ;
+  rdfs:comment "Used as the predicate to link all edges, all properties, an edge rule or a property rule to a template that describes how to represent it." .
+
+prec:Relationships prec:sameAs prec:Edges .
+
+prec:RdfStarUnique a prec:UISuggestable ;
+  rdfs:comment "Edges are represented as a direct triple in the form << source edgeLabelIRI destination >>. Incurs information loss if the edge is not unique." .
+prec:RdfStarOccurrence a prec:UISuggestable ;
+  rdfs:comment "Edges are represented as an RDF star occurrence (see RDF-star documentation)" .
+
+prec:RDFReification a prec:UISuggestable ;
+  rdfs:comment "Edges are represented with the standard RDF reification format" .
+
+pgo:Node a prec:UISuggestable ;
+  rdfs:comment "Types of nodes in the PGO ontology and the PREC-0 representation" .

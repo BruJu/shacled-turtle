@@ -1,22 +1,10 @@
 import axios from "axios";
-import * as n3 from 'n3';
 import * as rdfstring from 'rdf-string';
 import * as RDF from '@rdfjs/types';
 import TermMap from '@rdfjs/term-map';
 import SuggestionDatabase from "./SuggestionDatabase";
-
-import namespace from '@rdfjs/namespace';
-
-const ns = {
-  rdf : namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#", { factory: n3.DataFactory }),
-  rdfs: namespace("http://www.w3.org/2000/01/rdf-schema#"      , { factory: n3.DataFactory }),
-  xsd : namespace("http://www.w3.org/2001/XMLSchema#"          , { factory: n3.DataFactory }),
-  prec: namespace("http://bruy.at/prec#"                       , { factory: n3.DataFactory }),
-  pvar: namespace("http://bruy.at/prec-trans#"                 , { factory: n3.DataFactory }),
-  pgo : namespace("http://ii.uwb.edu.pl/pgo#"                  , { factory: n3.DataFactory }),
-  ex  : namespace("http://www.example.org/"                    , { factory: n3.DataFactory })
-};
-
+import { Parser } from 'n3';
+import { ns } from './PRECNamespace';
 
 function getHtmlElement<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
@@ -141,18 +129,12 @@ function convert() {
   axios.post('rest/transform_graph', requestObject)
   .then(response => {
     if (response.status !== 200) {
-      console.log(":(");
+      console.log("rest/transform_graph -> Status " + response.status);
       return;
     }
   
-    const parser = new n3.Parser();
+    const parser = new Parser();
     const quads = parser.parse(response.data.quads);
-  
-    console.log(quads);
-  
-    for (const quad of quads) {
-      console.log(rdfstring.termToString(quad));
-    }
   
     (document.getElementById("prec_answer") as HTMLTextAreaElement).value = response.data.quads as string;
   
@@ -167,6 +149,5 @@ convert();
 
 getHtmlElement<HTMLButtonElement>('convert_button').addEventListener('click', convert);
 
-const suggestionsDB = new SuggestionDatabase();
-suggestionsDB.attachTo(document.getElementById("input_context") as any);
+SuggestionDatabase("input_context");
 
