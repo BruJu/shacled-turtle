@@ -1,0 +1,47 @@
+@top TurtleDoc { Statement* }         /* [1] 	turtleDoc 	::= 	statement* */
+
+@skip { space | LineComment }
+
+Statement { Triple '.' }              /* [2] 	statement 	::= 	directive | triples '.' */
+
+Triple { Subject Predicate Object }
+Subject { iri | BlankNode }           /* [10] 	subject 	::= 	iri | BlankNode | collection */
+Predicate { iri }                     /* [11] 	predicate 	::= 	iri */
+Object { iri | BlankNode | Literal }  /* [12] 	object 	::= 	iri | BlankNode | collection | blankNodePropertyList | literal */
+
+
+// [135s] 	iri 	::= 	IRIREF | PrefixedName
+iri { IRIREF | PrefixedName }
+
+// [136s] 	PrefixedName 	::= 	PNAME_LN | PNAME_NS
+// PrefixedName { PNAME_LN }
+
+PrefixedName { PN_PREFIX? ':' PN_LOCAL }
+
+Literal { string_literal_quote }
+
+BlankNode { blank_node_label }
+
+@tokens {
+  IRIREF { '<' $[a-zA-Z_\-0-9/+.:#]* '>' }
+
+  blank_node_label { '_:' $[a-zA-Z0-9]+ }
+
+  string_literal_quote { '"' $[a-zA-Z0-9 _+]* '"' }
+
+  "."
+
+  LineComment { "#" ![\n]* }
+
+  space { $[ \t\n\r]+ }
+
+  PN_LOCAL { $[a-zA-Z0-9_]+ }
+
+  PN_PREFIX { pn_chars_base+ }
+
+  pn_chars_base { $[a-zA-Z0-9]+ }
+
+  
+}
+
+@detectDelim

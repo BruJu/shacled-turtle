@@ -5,6 +5,16 @@ import TermMap from '@rdfjs/term-map';
 import SuggestionDatabase from "./SuggestionDatabase";
 import { Parser } from 'n3';
 import { ns } from './PRECNamespace';
+//import { placeholder } from "@codemirror/view";
+//import {StreamLanguage} from "@codemirror/stream-parser";
+//import { turtle } from "@codemirror/legacy-modes/mode/turtle";
+//import {EditorView, EditorState, basicSetup} from "@codemirror/basic-setup"
+
+
+// millan to parse and produce a graph
+// then suggest from near words?
+// ...
+// retain the info of the range of each thing
 
 function getHtmlElement<T extends HTMLElement>(id: string): T {
   return document.getElementById(id) as T;
@@ -13,7 +23,20 @@ function getHtmlElement<T extends HTMLElement>(id: string): T {
 import data from './base_pg.json';
 
 getHtmlElement<HTMLTextAreaElement>("pg_request").value = JSON.stringify(data, null, 2);
-getHtmlElement<HTMLTextAreaElement>("input_context").value = "";
+
+/*
+const view = new EditorView({
+  parent: document.getElementById('context_div')!,
+  state: EditorState.create({
+    doc: "",
+    extensions: [
+      basicSetup,
+      placeholder("Your context"),
+      StreamLanguage.define(turtle)
+    ]
+  })
+});
+*/
 
 const boringTypes = [
   ns.prec.CreatedEdgeLabel, ns.prec.CreatedNodeLabel, ns.prec.CreatedPropertyKey,
@@ -33,7 +56,7 @@ function drawRDFGraph(name: string, quads: RDF.Quad[]) {
   const dotRepresentation = rdfToDot(quads);
 
   // For debugging
-  // getHtmlElement<HTMLTextAreaElement>("input_context").value = dotRepresentation;
+  getHtmlElement<HTMLTextAreaElement>("input_context").value = dotRepresentation;
 
   // @ts-ignore
   (d3 as any).select(name).graphviz().renderDot(dotRepresentation);
@@ -97,9 +120,7 @@ function rdfToDot(quads: RDF.Quad[]): string {
   return "digraph {\n " + dotLines.join("\n") + "\n } ";
 }
 
-function extractContext(textarea: HTMLTextAreaElement) {
-  const rawText = textarea.value;
-
+function extractContext(rawText: string) {
   if (rawText === '') return null;
 
   let s = Object.entries(ns).map(([prefix, namedNode]) => {
@@ -113,8 +134,8 @@ function convert() {
   const inputPGDom = document.getElementById('pg_request') as HTMLTextAreaElement;
   const data = JSON.parse(inputPGDom.value);
 
-  const textareaContext = getHtmlElement<HTMLTextAreaElement>("input_context");
-  const contextText = extractContext(textareaContext);
+  const textareaContent = view.state.doc.toString();
+  const contextText = extractContext(textareaContent);
 
   if (contextText === undefined) {
     // Error
@@ -149,5 +170,5 @@ convert();
 
 getHtmlElement<HTMLButtonElement>('convert_button').addEventListener('click', convert);
 
-SuggestionDatabase("input_context");
+//SuggestionDatabase("input_context");
 

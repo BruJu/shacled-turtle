@@ -1,0 +1,83 @@
+# Empty
+
+
+==>
+
+TurtleDoc()
+
+
+
+# NTriple style triple
+
+<subject> <predicate> <object> .
+
+==>
+
+
+TurtleDoc(
+ Statement(
+  Triple(
+    Subject(IRIREF),
+    Predicate(IRIREF),
+    Object(IRIREF)
+  ),
+  "."
+ )
+)
+
+# With blank nodes
+
+_:alice <knows> _:546645 .
+
+==>
+
+TurtleDoc(
+ Statement(
+  Triple(
+   Subject(BlankNode),
+   Predicate(IRIREF),
+   Object(BlankNode)
+  ),
+  "."
+ )
+)
+
+
+# With an IRI with a #
+
+_:toto rdf:type <http://bruy.at/prec#NodeRule> .
+
+==>
+
+TurtleDoc(
+ Statement(
+  Triple(
+   Subject(BlankNode),
+   Predicate(PrefixedName(PN_PREFIX, PN_LOCAL)),
+   Object(IRIREF)
+  )
+ )
+)
+
+# Multiple triples
+
+ex:toto rdf:type ex:Person .
+ex:toto ex:name "Toto" .
+
+==>
+TurtleDoc(
+  Statement(
+    Triple(
+      Subject(PrefixedName(PN_PREFIX, PN_LOCAL)),
+      Predicate(PrefixedName(PN_PREFIX, PN_LOCAL)),
+      Object(PrefixedName(PN_PREFIX, PN_LOCAL))
+    )
+  ),
+  Statement(
+    Triple(
+      Subject(PrefixedName(PN_PREFIX, PN_LOCAL)),
+      Predicate(PrefixedName(PN_PREFIX, PN_LOCAL)),
+      Object(Literal)
+    )
+  )
+)
