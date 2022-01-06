@@ -97,18 +97,18 @@ function isOnPredicate(syntaxNode: SyntaxNode) {
   const cursor = syntaxNode.cursor;
 
   while (true) {
-    if (cursor.name === 'Predicate') return true;
+    if (cursor.name === 'Verb') return true;
     if (!cursor.parent()) return false;
   }
 }
 
 
 function goToSPO(cursor: TreeCursor): string | false {
-  return cursorGoesTo(cursor, ['Predicate', 'Object']);
+  return cursorGoesTo(cursor, ['Verb', 'Object']);
 }
 
 function goToTriple(cursor: TreeCursor): string | false {
-  return cursorGoesTo(cursor, ['Triple']);
+  return cursorGoesTo(cursor, ['Triples']);
 }
 
 function cursorGoesTo(cursor: TreeCursor, alternatives: string[]): string | false {
@@ -134,18 +134,34 @@ function cursorGoesTo(cursor: TreeCursor, alternatives: string[]): string | fals
 function allTypesOf(context: CompletionContext, term: RDF.Term, tree: Tree): TermSet | null {
   const types = new TermSet();
 
-  for (const child of tree.topNode.getChildren("Triple")) {
-    const subject = syntaxNodeToTerm(context, child.getChild("Subject"));
-    const predicate = syntaxNodeToTerm(context, child.getChild("Predicate"));
-    const object = syntaxNodeToTerm(context, child.getChild("Object"));
+  for (const triples of tree.topNode.getChildren("Triples")) {
+    let child = triples.firstChild;
 
-    if (subject === null || predicate === null || object === null) {
-      continue;
+    if (child === null) continue;
+    if (child.name !== 'Subject') continue;
+
+    const subject = syntaxNodeToTerm(context, child);
+    if (subject === null) continue;
+    if (!subject.equals(term)) continue;
+
+    let rdfType = false;
+
+    while (true) {
+      child = child.nextSibling;
+      if (child === null) break;
+
+      if (child.name === 'Verb') {
+        const predicate = syntaxNodeToTerm(context, child);
+        rdfType = predicate !== null && ns.rdf.type.equals(predicate);
+      } else if (child.name === 'Object') {
+        if (rdfType) {
+          const object = syntaxNodeToTerm(context, child);
+          if (object !== null) {
+            types.add(object);
+          }
+        }
+      }
     }
-
-    if (subject.equals(term) && ns.rdf.type.equals(predicate)) {
-      types.add(object);
-    }    
   }
 
   return types;

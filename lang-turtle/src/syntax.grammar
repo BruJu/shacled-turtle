@@ -2,16 +2,24 @@
 
 @skip { space | LineComment }
 
-statement { Triple '.' }              /* [2] 	statement 	::= 	directive | triples '.' */
+statement { /* Directive | */ Triples '.' }                                     // [2]  statement    ::= directive | triples '.'
+//Directive { PrefixID | Base | SparqlPrefix | SparqlBase }                       // [3] 	directive    ::= prefixID | base | sparqlPrefix | sparqlBase
+//PrefixID { '@prefix' PNAME_NS IRIREF '.' }                                      // [4] 	prefixID     ::= '@prefix' PNAME_NS IRIREF '.'
+//Base { '@base' IRIREF '.' }                                                     // [5]  base         ::= '@base' IRIREF '.'
+//SparqlBase { base_token PNAME_NS IRIREF }                                       // [5s] sparqlBase   ::= "BASE" IRIREF
+//SparqlPrefix { prefix_token IRIREF  }                                           // [6s] sparqlPrefix ::= "PREFIX" PNAME_NS IRIREF
 
-Triple { Subject Predicate Object }
-Subject { iri | BlankNode }           /* [10] 	subject 	::= 	iri | BlankNode | collection */
-Predicate { iri }                     /* [11] 	predicate 	::= 	iri */
-Object { iri | BlankNode | Literal }  /* [12] 	object 	::= 	iri | BlankNode | collection | blankNodePropertyList | literal */
 
 
-// [135s] 	iri 	::= 	IRIREF | PrefixedName
-iri { IRIREF | PrefixedName }
+Triples { Subject predicateObjectList /* incomplete rule */ }                   // [6] triples ::= subject predicateObjectList | blankNodePropertyList predicateObjectList?
+predicateObjectList { Verb objectList (';' (Verb objectList)?)* }               // [7] predicateObjectList ::= verb objectList (';' (verb objectList)?)*
+objectList { Object (',' Object)* }                                             // [8] objectList ::= object (',' object)*
+Verb { predicate | 'a' }                                                        // [9]  verb         ::= predicate | 'a'
+Subject { iri | BlankNode /* incomplete rule */ }                               // [10] subject      ::= iri | BlankNode | collection
+predicate { iri }                                                               // [11] predicate    ::= iri
+Object { iri | BlankNode | Literal /* incomplete rule */ }                      // [12] object       ::= iri | BlankNode | collection | blankNodePropertyList | literal
+
+iri { IRIREF | PrefixedName }                                                   // [135s] 	iri 	::= 	IRIREF | PrefixedName
 
 // [136s] 	PrefixedName 	::= 	PNAME_LN | PNAME_NS
 // PrefixedName { PNAME_LN }
@@ -23,6 +31,8 @@ Literal { string_literal_quote }
 BlankNode { blank_node_label }
 
 @tokens {
+  @precedence { 'a', PN_PREFIX }
+
   IRIREF { '<' $[a-zA-Z_\-0-9/+.:#]* '>' }
 
   blank_node_label { '_:' $[a-zA-Z0-9]+ }

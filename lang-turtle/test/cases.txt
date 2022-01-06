@@ -15,9 +15,9 @@ TurtleDoc()
 
 
 TurtleDoc(
- Triple(
+ Triples(
   Subject(IRIREF),
-  Predicate(IRIREF),
+  Verb(IRIREF),
   Object(IRIREF)
  )
 )
@@ -29,9 +29,9 @@ _:alice <knows> _:546645 .
 ==>
 
 TurtleDoc(
- Triple(
+ Triples(
    Subject(BlankNode),
-   Predicate(IRIREF),
+   Verb(IRIREF),
    Object(BlankNode)
  )
 )
@@ -44,9 +44,9 @@ _:toto rdf:type <http://bruy.at/prec#NodeRule> .
 ==>
 
 TurtleDoc(
- Triple(
+ Triples(
   Subject(BlankNode),
-  Predicate(PrefixedName(PN_PREFIX, PN_LOCAL)),
+  Verb(PrefixedName(PN_PREFIX, PN_LOCAL)),
   Object(IRIREF)
  )
 )
@@ -58,14 +58,32 @@ ex:toto ex:name "Toto" .
 
 ==>
 TurtleDoc(
- Triple(
+ Triples(
   Subject(PrefixedName(PN_PREFIX, PN_LOCAL)),
-  Predicate(PrefixedName(PN_PREFIX, PN_LOCAL)),
+  Verb(PrefixedName(PN_PREFIX, PN_LOCAL)),
   Object(PrefixedName(PN_PREFIX, PN_LOCAL))
  ),
- Triple(
+ Triples(
   Subject(PrefixedName(PN_PREFIX, PN_LOCAL)),
-  Predicate(PrefixedName(PN_PREFIX, PN_LOCAL)),
+  Verb(PrefixedName(PN_PREFIX, PN_LOCAL)),
   Object(Literal)
  )
 )
+
+
+# Turtle multitriples
+
+ex:toto a ex:Person ; rdf:type _:person , _:guynamedtoto .
+
+==> 
+TurtleDoc(
+ Triples(
+  Subject(PrefixedName(PN_PREFIX, PN_LOCAL)),
+  Verb(),
+  Object(PrefixedName(PN_PREFIX, PN_LOCAL)),
+  Verb(PrefixedName(PN_PREFIX, PN_LOCAL)),
+  Object(BlankNode),
+  Object(BlankNode)
+ )
+)
+
