@@ -1,8 +1,8 @@
-@top TurtleDoc { Statement* }         /* [1] 	turtleDoc 	::= 	statement* */
+@top TurtleDoc { statement* }         /* [1] 	turtleDoc 	::= 	statement* */
 
 @skip { space | LineComment }
 
-Statement { Triple '.' }              /* [2] 	statement 	::= 	directive | triples '.' */
+statement { Triple '.' }              /* [2] 	statement 	::= 	directive | triples '.' */
 
 Triple { Subject Predicate Object }
 Subject { iri | BlankNode }           /* [10] 	subject 	::= 	iri | BlankNode | collection */

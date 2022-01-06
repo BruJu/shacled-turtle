@@ -12,7 +12,9 @@ Currently, PREC can only run on NodeJS so we have to setup a server.
 
 Open a new terminal
 
-- `cd frontend`
+- `cd lang-turtle`
+- `npm pack`
+- `cd ..\frontend`
 - `npm install`
 - `npm run start`
 
@@ -24,3 +26,4 @@ You can now visit http://localhost:1234
 ## License
 
 MIT License, INSA Lyon
+
