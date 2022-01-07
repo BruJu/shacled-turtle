@@ -1,6 +1,7 @@
 import { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { syntaxTree } from "@codemirror/language";
 import { SyntaxNode, Tree, TreeCursor } from "@lezer/common";
+import namespace from '@rdfjs/namespace';
 import * as RDF from '@rdfjs/types';
 import SuggestionDatabase from "./SuggestionDatabase";
 import * as rdfString from 'rdf-string';
@@ -8,69 +9,79 @@ import { ns } from "../PRECNamespace";
 import TermSet from "@rdfjs/term-set";
 import { DataFactory } from "n3";
 
+const N3Factory = { factory: DataFactory };
+
 let suggestions: SuggestionDatabase | null = null;
 
 SuggestionDatabase.load(/* PREC Shacl Graph */).then(db => suggestions = db);
+
+export type TurtleDirectives = {
+  base: namespace.NamespaceBuilder<string> | null;
+  prefixes: {[prefix: string]: namespace.NamespaceBuilder<string>}
+};
 
 export default function autocompletionSolve(context: CompletionContext)
 : null | CompletionResult {
   const tree = syntaxTree(context.state);
   const theNode: SyntaxNode | null = tree.resolve(context.pos, -1);
-
   if (theNode === null) return null;
+
+  const currentHierarchyLocation = computeHierarchy(theNode);
+
+  const situation: CurrentSituation = { hierarchy: currentHierarchyLocation };
 
   let cursor = theNode.cursor;
 
-  // const typeAtCurrentPosition = cursor.type.name;
+  const pathInHierarchy = goToTypeOfStatement(cursor);
+  if (pathInHierarchy === null) { return null; }
+  let retval: CompletionResult | null = null;
 
-//  const spo = goToSPO(cursor);
-//  if (spo === false) return null;
-//
-//  const spoType = cursor.type.name;
-//  const spoStart = cursor.from;
-//  const spoEnd = cursor.to;
+  if (pathInHierarchy.type === TypeOfStatement.Directive) {
+    retval = directiveAutocompletion(context, cursor.node, theNode);
+  } else if (pathInHierarchy.type === TypeOfStatement.Triple) {
+    retval = tripleAutocompletion(
+      context, tree, cursor.node, theNode, situation
+    );
+  }
 
-  const hierarchyToReachParentTriple = goToTriple(cursor);
+  injectSituation(situation);
+  return retval;
+}
 
-  if (hierarchyToReachParentTriple === false) return null;
 
+function tripleAutocompletion(
+  context: CompletionContext, 
+  tree: Tree,
+  triplesSyntaxNode: SyntaxNode,
+  currentNode: SyntaxNode,
+  situation: CurrentSituation
+): CompletionResult | null {
+  const turtleDeclarations = lookForUsedPrefixes(context, tree.topNode);
+  const cursor = triplesSyntaxNode.cursor;
   cursor.firstChild();
 
   if (cursor.type.name !== 'Subject') return null; /* we broke rdf */
 
   const subjectRaw = context.state.sliceDoc(cursor.from, cursor.to);
+  situation.subjectText = subjectRaw;
 
   const word = context.matchBefore(/[a-zA-Z"'0-9_+-/<>:\\]*/);
   if (word === null) return null;
-
-  let cursorHierarchy = theNode.cursor;
-  let hier = theNode.name;
-  while (cursorHierarchy.parent()) {
-    hier = cursorHierarchy.name + ">" + hier;
-  }
-
-  
+ 
   const myElement = tokenToTerm(subjectRaw);
   let subjectTypesSet: RDF.Term[] = [];
   if (myElement) {
+    situation.subjectTerm = myElement;
     const r = allTypesOf(context, myElement, tree);
     if (r !== null) subjectTypesSet = [...r];
+
+    situation.typesOfSubject = subjectTypesSet;
   }
-
-  injectSituation({
-    hierarchy: hier,
-    subjectText: subjectRaw,
-    subjectTerm: myElement || undefined,
-    typesOfSubject: subjectTypesSet
-  });
-
 
   let options: Completion[] = [];
   
   if (suggestions !== null) {
-    options = suggestions.getAllTypes().map(termToOption);
-
-    if (isOnPredicate(theNode)) {
+    if (isOnPredicate(currentNode)) {
       let possiblePredicates = new TermSet();
 
       for (const type of subjectTypesSet) {
@@ -81,15 +92,67 @@ export default function autocompletionSolve(context: CompletionContext)
 
       options = [
         { label: "rdf:type" },
-        ...[...possiblePredicates].map(termToOption)
+        ...[...possiblePredicates].map(term => termToOption(term, turtleDeclarations))
       ];
+    } else {
+      // Supported values for rdf:type
+      // TODO: check if we are in the object of rdf type
+      options = suggestions.getAllTypes().map(term => termToOption(term, turtleDeclarations));
     }
   }
 
   return { from: word.from, options, filter: false };
 }
 
-function termToOption(term: RDF.Term): Completion {
+function directiveAutocompletion(
+  context: CompletionContext, directiveSyntaxNode: SyntaxNode,
+  currentlyFilledNode: SyntaxNode
+): CompletionResult | null {
+  const firstChild = directiveSyntaxNode.firstChild;
+  if (firstChild === null) return null;
+
+  if (firstChild.name !== 'PrefixID' && firstChild.name !== 'SparqlPrefix') {
+    return null; 
+  }
+
+  const prefix = firstChild.getChild("PN_PREFIX");
+  if (prefix === null) return null;
+
+  const text = extractFromCompletitionContext(context, prefix);
+
+  const pair = Object.entries(ns).find(([prefix, _]) => prefix === text);
+  if (pair === undefined) return null;
+
+
+  const word = context.matchBefore(/[a-zA-Z"'0-9_+-/<>:\\]*/);
+  if (word === null) return null;
+
+  if (cursorGoesTo(currentlyFilledNode.cursor, ["IRIREF"]) === false) {
+    return null;
+  }
+
+  return {
+    from: word.from,
+    filter: false,
+    options: [
+      { label: '<' + pair[1][''].value + '>' }
+    ]
+  };
+}
+
+function termToOption(term: RDF.Term, turtleDeclarations: TurtleDirectives): Completion {
+  if (term.termType !== 'NamedNode') {
+    return { label: `${rdfString.termToString(term)}` };
+  }
+
+  for (const [prefix, builder] of Object.entries(turtleDeclarations.prefixes)) {
+    const emptyTerm: RDF.NamedNode = builder[""];
+
+    if (term.value.startsWith(emptyTerm.value)) {
+      return { label: prefix + ':' + term.value.substring(emptyTerm.value.length)};
+    }    
+  }
+
   return { label: `<${rdfString.termToString(term)}>` };
 }
 
@@ -102,13 +165,22 @@ function isOnPredicate(syntaxNode: SyntaxNode) {
   }
 }
 
+enum TypeOfStatement { Triple, Directive }
 
-function goToSPO(cursor: TreeCursor): string | false {
-  return cursorGoesTo(cursor, ['Verb', 'Object']);
-}
+function goToTypeOfStatement(cursor: TreeCursor)
+: { type: TypeOfStatement, path: string } | null {
+  const path = cursorGoesTo(cursor, ['Triples', 'Directive']);
+  if (path === false) {
+    return null;
+  }
 
-function goToTriple(cursor: TreeCursor): string | false {
-  return cursorGoesTo(cursor, ['Triples']);
+  if (cursor.type.name === 'Triples') {
+    return { type: TypeOfStatement.Triple, path };
+  } else if (cursor.type.name === 'Directive') {
+    return { type: TypeOfStatement.Directive, path };
+  } else {
+    return null;
+  }
 }
 
 function cursorGoesTo(cursor: TreeCursor, alternatives: string[]): string | false {
@@ -194,6 +266,18 @@ function syntaxNodeToTerm(context: CompletionContext, syntaxNode: SyntaxNode | n
   }
 }
 
+function computeHierarchy(syntaxNode: SyntaxNode): string {
+  const cursor = syntaxNode.cursor;
+
+  let path = cursor.name;
+
+  while (cursor.parent()) {
+    path = cursor.name + " > " + path;
+  }
+
+  return path;
+}
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // For debug
@@ -206,7 +290,9 @@ type CurrentSituation = {
 }
 
 function injectSituation(currentSituation: CurrentSituation) {
-  const pathEl = document.getElementById('current_path')!;
+  const pathEl = document.getElementById('current_path');
+
+  if (pathEl === null) return;
   const subjectEl = document.getElementById('current_subject')!;
   const typesEl = document.getElementById('current_subject_types')!;
 
@@ -237,5 +323,37 @@ function injectSituation(currentSituation: CurrentSituation) {
   }
 
   typesEl.appendChild(document.createTextNode(typesText));
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+function extractFromCompletitionContext(
+  completionCtx: CompletionContext, node: SyntaxNode
+) {
+  return completionCtx.state.sliceDoc(node.from, node.to);
+}
+
+function lookForUsedPrefixes(completionCtx: CompletionContext, tree: SyntaxNode): TurtleDirectives {
+  let answer: TurtleDirectives = { base: null, prefixes: {} };
+
+  for (const directive of tree.getChildren("Directive")) {
+    const child = directive.firstChild;
+    if (child === null) continue;
+
+    const iriRefNode = child.getChild("IRIREF");
+    if (iriRefNode === null) continue;
+    const iriStr = extractFromCompletitionContext(completionCtx, iriRefNode);
+    const describedNamespace = namespace(iriStr.slice(1, iriStr.length - 1));
+
+    if (child.name === "Base" || child.name === "SparqlBase") {
+      answer.base = describedNamespace;
+    } else if (child.name === "PrefixID" || child.name === "SparqlPrefix") {
+      const prefixNode = child.getChild("PN_PREFIX");
+      const prefix = prefixNode === null ? "" : extractFromCompletitionContext(completionCtx, prefixNode);
+      answer.prefixes[prefix] = describedNamespace;
+    }
+  }
+
+  return answer;
 }
 

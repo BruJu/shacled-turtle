@@ -18,7 +18,9 @@ Open a new terminal
 - `npm install`
 - `npm run start`
 
-You can now visit http://localhost:1234
+
+
+You can now visit http://localhost:1234 and http://localhost:1234/context.html
 
 "Yay it works but the amount of exposed features are very limited"
 

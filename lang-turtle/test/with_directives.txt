@@ -1,0 +1,19 @@
+# A document
+
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+BASE <http://toto> .
+
+_:alice foaf:knows _:bob .
+_:bob foaf:knows _:alice .
+:toto a <Person> .
+
+==>
+
+TurtleDoc(
+ Directive(PrefixID(PN_PREFIX, IRIREF)),
+ Directive(SparqlBase(IRIREF)),
+ Triples(Subject(BlankNode), Verb(PrefixedName(PN_PREFIX, PN_LOCAL)), Object(BlankNode)),
+ Triples(Subject(BlankNode), Verb(PrefixedName(PN_PREFIX, PN_LOCAL)), Object(BlankNode)),
+ Triples(Subject(PrefixedName(PN_LOCAL)), Verb, Object(IRIREF))
+)
+

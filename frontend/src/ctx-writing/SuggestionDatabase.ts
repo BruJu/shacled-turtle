@@ -15,7 +15,7 @@ import { $defaultGraph, ns } from '../PRECNamespace';
 
 
 /** The PREC validation shape graph */
-const PREC_SHAPE_GRAPH_LINK = "https://raw.githubusercontent.com/BruJu/PREC/ContextShape/data/PRECContextShape.ttl";
+export const PREC_SHAPE_GRAPH_LINK = "https://raw.githubusercontent.com/BruJu/PREC/ContextShape/data/PRECContextShape.ttl";
 
 /**
  * A database used to suggest some terms for auto completion, backed by a SHACL

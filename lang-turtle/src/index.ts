@@ -27,7 +27,12 @@ export const TurtleLanguage = LRLanguage.define({
         PN_PREFIX: t.operator,
         'a': t.meta,
         '@prefix': t.meta,
-        '@base': t.meta
+        'BASE': t.meta,
+        "PREFIX": t.meta,
+        "base": t.meta,
+        "prefix": t.meta,
+        '@base': t.meta,
+        'BlankNodeLabel': t.variableName
       })
     ]
   }),

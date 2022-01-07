@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+  </head>
+  <body>
+    <section class="section">
+      <div class="container">
+        <h1 class="title is-1">PREC Context Writer</h1>
+
+        <p>
+          This page displays a code editor that enables to write a
+          <a href="https://github.com/BruJu/PREC">PREC context</a>.
+          The code editor has some autocompletion backed by the
+          <a id="prec_shacl_graph">SHACL graph that describes PREC context graphs.</a>
+        </p>
+        
+        <p>
+          Hierarchy: <span id="current_path"></span>
+          <br>Subject: <span id="current_subject"></span>
+          <br>Types of subject: <span id="current_subject_types"></span>
+        </p>
+
+        <div id="editor"></div>
+      </div>
+    </section>
+
+    <script type="module" src="context.ts"></script>
+  </body>
+</html>

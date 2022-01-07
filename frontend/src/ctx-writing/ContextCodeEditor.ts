@@ -1,7 +1,7 @@
 import { turtle } from "@bruju/lang-turtle";
 import { autocompletion } from "@codemirror/autocomplete";
 import { basicSetup } from "@codemirror/basic-setup";
-import { EditorState } from "@codemirror/state";
+import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, placeholder } from "@codemirror/view";
 import { ns } from "../PRECNamespace";
 import autocompletionSolve from "./autocompletion-solving";
@@ -13,7 +13,7 @@ export default class ContextCodeEditor {
   readonly view: EditorView;
 
   /** Mount the code editor inside the given parent */
-  constructor(parent: Element) {
+  constructor(parent: Element, extensions?: Extension[]) {
     this.view = new EditorView({
       parent: parent,
       state: EditorState.create({
@@ -22,7 +22,8 @@ export default class ContextCodeEditor {
           basicSetup,
           placeholder("Your context"),
           turtle(),
-          autocompletion({ override: [ autocompletionSolve ] })
+          autocompletion({ override: [ autocompletionSolve ] }),
+          ...(extensions || [])
         ]
       })
     });
