@@ -72,7 +72,7 @@ function tripleAutocompletion(
   let subjectTypesSet: RDF.Term[] = [];
   if (myElement) {
     situation.subjectTerm = myElement;
-    const r = allTypesOf(context, myElement, tree);
+    const r = allTypesOf(context, turtleDeclarations, myElement, tree);
     if (r !== null) subjectTypesSet = [...r];
 
     situation.typesOfSubject = subjectTypesSet;
@@ -203,7 +203,11 @@ function cursorGoesTo(cursor: TreeCursor, alternatives: string[]): string | fals
   return hierarchy;
 }
 
-function allTypesOf(context: CompletionContext, term: RDF.Term, tree: Tree): TermSet | null {
+function allTypesOf(
+  context: CompletionContext,
+  directives: TurtleDirectives,
+  term: RDF.Term, tree: Tree
+): TermSet | null {
   const types = new TermSet();
 
   for (const triples of tree.topNode.getChildren("Triples")) {
@@ -212,7 +216,7 @@ function allTypesOf(context: CompletionContext, term: RDF.Term, tree: Tree): Ter
     if (child === null) continue;
     if (child.name !== 'Subject') continue;
 
-    const subject = syntaxNodeToTerm(context, child);
+    const subject = syntaxNodeToTerm(context, directives, child);
     if (subject === null) continue;
     if (!subject.equals(term)) continue;
 
@@ -223,11 +227,11 @@ function allTypesOf(context: CompletionContext, term: RDF.Term, tree: Tree): Ter
       if (child === null) break;
 
       if (child.name === 'Verb') {
-        const predicate = syntaxNodeToTerm(context, child);
+        const predicate = syntaxNodeToTerm(context, directives, child);
         rdfType = predicate !== null && ns.rdf.type.equals(predicate);
       } else if (child.name === 'Object') {
         if (rdfType) {
-          const object = syntaxNodeToTerm(context, child);
+          const object = syntaxNodeToTerm(context, directives, child);
           if (object !== null) {
             types.add(object);
           }
@@ -240,8 +244,7 @@ function allTypesOf(context: CompletionContext, term: RDF.Term, tree: Tree): Ter
 }
 
 function tokenToTerm(token: string): RDF.Term | null {
-  // TODO: add prefixes
-  if (token === "rdf:type" || token === "a") {
+  if (token === "a") {
     return ns.rdf.type;
   }
 
@@ -254,16 +257,52 @@ function tokenToTerm(token: string): RDF.Term | null {
   }
 }
 
-function syntaxNodeToTerm(context: CompletionContext, syntaxNode: SyntaxNode | null)
-: RDF.Term | null {
+function syntaxNodeToTerm(
+  context: CompletionContext,
+  directives: TurtleDirectives,
+  syntaxNode: SyntaxNode | null
+): RDF.Term | null {
   if (syntaxNode === null) return null;
 
-  try {
-    const rawText = context.state.sliceDoc(syntaxNode.from, syntaxNode.to);
-    return tokenToTerm(rawText);
-  } catch (_) {
-    return null;
+  // The syntaxNode should be a Subject, a Verb or an Object
+
+  if (syntaxNode.name !== 'Subject'
+    && syntaxNode.name !== 'Verb'
+    && syntaxNode.name !== 'Object') {
+    throw Error("syntaxNodeToTerm can only be used on Subject, Verb and Object, but was called on a " + syntaxNode.name);
   }
+
+  const child = syntaxNode.firstChild
+  if (child === null) return null;
+
+  if (child.name === 'PrefixedName') {
+    return prefixedNameSyntaxNodeToTerm(context, directives, child);
+  } else {
+    const rawText = context.state.sliceDoc(syntaxNode.from, syntaxNode.to);
+    try {
+      return tokenToTerm(rawText);
+    } catch (_) {
+      return null;
+    }
+  }
+}
+
+function prefixedNameSyntaxNodeToTerm(
+  context: CompletionContext,
+  directives: TurtleDirectives,
+  node: SyntaxNode
+): RDF.Term | null {
+  const pnPrefixNode = node.getChild('PN_PREFIX');
+  const pnLocalNode = node.getChild('PN_LOCAL');
+
+  const prefix = pnPrefixNode === null ? "" : context.state.sliceDoc(pnPrefixNode.from, pnPrefixNode.to);
+  if (pnLocalNode === null) return null;
+
+  const localNodeText = context.state.sliceDoc(pnLocalNode.from, pnLocalNode.to);
+  
+  const builder = directives.prefixes[prefix];
+  if (builder === undefined) return DataFactory.variable(prefix + ":" + localNodeText);
+  return builder[localNodeText];
 }
 
 function computeHierarchy(syntaxNode: SyntaxNode): string {

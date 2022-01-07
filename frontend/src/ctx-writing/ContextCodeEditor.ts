@@ -17,7 +17,7 @@ export default class ContextCodeEditor {
     this.view = new EditorView({
       parent: parent,
       state: EditorState.create({
-        doc: "",
+        doc: initialDocument(),
         extensions: [
           basicSetup,
           placeholder("Your context"),
@@ -30,16 +30,23 @@ export default class ContextCodeEditor {
   }
 
   /**
-   * Return the context written by the user as a string. Some PREC related
-   * namespaces are added.
+   * Return the context written by the user as a string.
    */
   getContext(): string {
-    const viewContent = this.view.state.doc.toString();
-    if (viewContent === '') return '';
-
-    // Append PREC related prefixes
-    return Object.entries(ns).map(([prefix, namedNode]) => {
-      return `@prefix ${prefix}: <${namedNode[''].value}> .`
-    }).join("\n") + "\n" + viewContent;
+    return this.view.state.doc.toString();
   }
+}
+
+
+function initialDocument() {
+  let lines: string[] = [];
+
+  for (const prefix of ["rdf", "rdfs", "xsd", "prec", "pvar", "pgo", "ex"]) {
+    const builder = (ns as any)[prefix];
+    if (builder !== undefined) {
+      lines.push(`@prefix ${prefix}: <${builder[''].value}> .`);
+    }
+  }
+
+  return lines.join("\n") + "\n\n";
 }
