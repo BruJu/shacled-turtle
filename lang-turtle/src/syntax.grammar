@@ -13,7 +13,10 @@ SparqlPrefix { prefix_token PN_PREFIX ':' IRIREF }                              
 
 
 
-Triples { Subject predicateObjectList /* incomplete rule */ }                   // [6] triples ::= subject predicateObjectList | blankNodePropertyList predicateObjectList?
+Triples {                                                                       // [6] triples ::= subject predicateObjectList | blankNodePropertyList predicateObjectList?
+  Subject predicateObjectList
+  | BlankNodePropertyList predicateObjectList?
+}
 predicateObjectList { Verb objectList (';' (Verb objectList)?)* }               // [7] predicateObjectList ::= verb objectList (';' (verb objectList)?)*
 objectList { Object (',' Object)* }                                             // [8] objectList ::= object (',' object)*
 Verb { predicate | 'a' }                                                        // [9]  verb         ::= predicate | 'a'

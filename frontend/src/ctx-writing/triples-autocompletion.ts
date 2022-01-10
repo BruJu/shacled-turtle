@@ -14,8 +14,17 @@ import { DataFactory } from "n3";
 let suggestions: SuggestionDatabase | null = null;
 SuggestionDatabase.load(/* PREC Shacl Graph */).then(db => suggestions = db);
 
-enum SVO { Subject, Verb, Object, None };
+export async function changeShaclGraph(url: string): Promise<boolean> {
+  try {
+    const db = await SuggestionDatabase.load(url);
+    suggestions = db;
+    return true;
+  } catch (err) {
+    return false;
+  }
+}
 
+enum SVO { Subject, Verb, Object, None };
 
 export function tripleAutocompletion(
   compCtx: CompletionContext,
@@ -142,15 +151,14 @@ function getSubjectInfo(
   cursor.firstChild();
 
   if (cursor.type.name === 'BlankNodePropertyList') {
-    console.error("BlankNodePropertyList is not yet supported");
     situation.subjectText = "BlankNodePropertyList";
+  } else if (cursor.type.name === 'Subject') {
+    const subjectRaw = editorState.sliceDoc(cursor.from, cursor.to);
+    situation.subjectText = subjectRaw;
+  } else {
+    situation.subjectText = "Some (unsupported) " + cursor.type.name;
     return null;
   }
-
-  if (cursor.type.name !== 'Subject') return null; /* we broke rdf */
-
-  const subjectRaw = editorState.sliceDoc(cursor.from, cursor.to);
-  situation.subjectText = subjectRaw;
 
   const theSubjectTerm = syntaxNodeToTerm(editorState, directives, cursor.node);
 
@@ -163,7 +171,7 @@ function getSubjectInfo(
 
     const theAnonNode = triples.firstChild;
     if (theAnonNode) {
-      extractAllTypesOfPredicateObjectList(
+      extractAllTypes(
         editorState, directives, theAnonNode, typesOfSubject
       );
     }
@@ -197,31 +205,48 @@ function allTypesOf(
     if (!subject.equals(term)) continue;
 
     // Yes -> extract all values of rdf:type
-    extractAllTypesOfPredicateObjectList(editorState, directives, child, destination);
+    extractAllTypes(editorState, directives, child, destination);
   }
 
   return destination;
 }
 
-function extractAllTypesOfPredicateObjectList(
+/**
+ * `node` must be either a Subject or a BlankNodePropertyList. Its parent must
+ * be a Triples.
+ */
+function extractAllTypes(
   editorState: EditorState,
   directives: TurtleDirectives,
-  cursor: SyntaxNode,
+  node: SyntaxNode,
   destination: TermSet = new TermSet()
 ): TermSet {
-  let rdfType = false;
-
-  let node: SyntaxNode | null = cursor; // On Subject
-  if (node.name !== 'Subject') {
+  if (node.name === 'BlankNodePropertyList') {
+    extractAllTypesOfVerbAndObjectList(
+      editorState, directives, node.firstChild, destination
+    );
+  } else if (node.name !== 'Subject') {
     console.error("extractAllTypesOfPredicateObjectList called on " + node.name);
+    return destination;
   }
 
-  while (true) {
-    node = node.nextSibling;
-    if (node === null) break;
+  extractAllTypesOfVerbAndObjectList(
+    editorState, directives, node.nextSibling, destination
+  );
+  
+  return destination;
+}
 
+function extractAllTypesOfVerbAndObjectList(
+  editorState: EditorState,
+  directives: TurtleDirectives,
+  node: SyntaxNode | null,
+  destination: TermSet = new TermSet()
+) {
+  let rdfType = false;
+
+  while (node !== null) {
 //    console.log(node.name);
-
     if (node.name === 'Verb') {
       const predicate = syntaxNodeToTerm(editorState, directives, node);
       rdfType = predicate !== null && predicate !== AnonymousBlankNode
@@ -234,9 +259,11 @@ function extractAllTypesOfPredicateObjectList(
         }
       }
     }
+
+    node = node.nextSibling;
   }
 
-  return destination;
+  return destination
 }
 
 function termToOption(term: RDF.Term, turtleDeclarations: TurtleDirectives): Completion {

@@ -6,7 +6,9 @@
   "scripts": {
     "start": "npx parcel ./src/index.html ./src/context.html -p 12345",
     "build": "npx parcel build ./src/index.html ./src/context.html --public-url ./ --dist-dir ./dist",
+    "clean": "npx del-cli .parcel-cache/ && npx del-cli dist/",
     "test": "echo \"Error: no test specified\" && exit 1",
+    "preupdatelang": "npm run clean",
     "updatelang": "cd ../lang-turtle && npm pack && cd ../frontend && npm uninstall @bruju/lang-turtle && npm install ../lang-turtle/bruju-lang-turtle-0.1.0.tgz"
   },
   "repository": {
@@ -26,6 +28,7 @@
     "@types/rdfjs__namespace": "^1.1.5",
     "@types/rdfjs__term-map": "^1.0.2",
     "@types/rdfjs__term-set": "^1.0.3",
+    "del-cli": "^4.0.1",
     "parcel": "^2.0.1",
     "typescript": "^4.5.2"
   },

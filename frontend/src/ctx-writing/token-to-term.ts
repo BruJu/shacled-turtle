@@ -26,7 +26,8 @@ export function syntaxNodeToTerm(
 ): RDF.Term | typeof AnonymousBlankNode | null {
   if (syntaxNode.name !== 'Subject'
     && syntaxNode.name !== 'Verb'
-    && syntaxNode.name !== 'Object') {
+    && syntaxNode.name !== 'Object'
+    && syntaxNode.name !== 'BlankNodePropertyList') {
     throw Error("syntaxNodeToTerm can only be used on Subject, Verb and Object, but was called on a " + syntaxNode.name);
   }
 
