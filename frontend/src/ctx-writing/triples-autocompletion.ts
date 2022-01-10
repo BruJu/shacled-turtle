@@ -63,7 +63,17 @@ export function tripleAutocompletion(
     ];
 
   } else if (currentSVO === SVO.Object) {
-    options = suggestions.getAllTypes().map(term => termToOption(term, directives));
+    let cursor = currentNode.cursor;
+    // Reach Object
+    while (cursor.type.name !== 'Object') cursor.parent();
+    // Go to corresponding verb
+    // @ts-ignore 2367
+    while (cursor.type.name !== 'Verb') cursor.prevSibling();
+    
+    const t = syntaxNodeToTerm(compCtx.state, directives, cursor.node);
+    if (t !== null && t !== AnonymousBlankNode && ns.rdf.type.equals(t)) {
+      options = suggestions.getAllTypes().map(term => termToOption(term, directives));
+    }
   } else {
     return null;
   }

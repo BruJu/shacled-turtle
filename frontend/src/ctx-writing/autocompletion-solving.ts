@@ -21,6 +21,8 @@ export type CurrentSituation = {
   typesOfSubject?: RDF.Term[];
 }
 
+enum TypeOfStatement { Triple, Directive }
+
 export default function autocompletionSolve(context: CompletionContext)
 : null | CompletionResult {
   const tree = syntaxTree(context.state);
@@ -31,8 +33,8 @@ export default function autocompletionSolve(context: CompletionContext)
 
   let cursor = theNode.cursor;
 
-  const pathInHierarchy = goToTypeOfStatement(cursor);
-  if (pathInHierarchy === null) return null;
+  const typeOfStatement = goToTypeOfStatement(cursor);
+  if (typeOfStatement === null) return null;
 
   const situation: CurrentSituation = {
     autocompletionType: 'unknown',
@@ -40,10 +42,10 @@ export default function autocompletionSolve(context: CompletionContext)
   };
 
   let retval: CompletionResult | null = null;
-  if (pathInHierarchy.type === TypeOfStatement.Directive) {
+  if (typeOfStatement === TypeOfStatement.Directive) {
     situation.autocompletionType = 'directive';
     retval = directiveAutocompletion(context, cursor.node, theNode);
-  } else if (pathInHierarchy.type === TypeOfStatement.Triple) {
+  } else if (typeOfStatement === TypeOfStatement.Triple) {
     situation.autocompletionType = 'triples';
     retval = tripleAutocompletion(context, tree, cursor.node, theNode, situation);
   }
@@ -67,7 +69,7 @@ function directiveAutocompletion(
   const prefix = firstChild.getChild("PN_PREFIX");
   if (prefix === null) return null;
 
-  const text = extractFromCompletitionContext(context, prefix);
+  const text = context.state.sliceDoc(prefix.from, prefix.to);
 
   const pair = Object.entries(ns).find(([prefix, _]) => prefix === text);
   if (pair === undefined) return null;
@@ -76,9 +78,7 @@ function directiveAutocompletion(
   const word = context.matchBefore(/[a-zA-Z"'0-9_+-/<>:\\]*/);
   if (word === null) return null;
 
-  if (cursorGoesTo(currentlyFilledNode.cursor, ["IRIREF"]) === false) {
-    return null;
-  }
+  if (!cursorGoesTo(currentlyFilledNode.cursor, ["IRIREF"])) return null;
 
   return {
     from: word.from,
@@ -89,73 +89,32 @@ function directiveAutocompletion(
   };
 }
 
+///////////////////////////////////////////////////////////////////////////////
 
-
-function isOnPredicate(syntaxNode: SyntaxNode) {
-  const cursor = syntaxNode.cursor;
-
-  while (true) {
-    if (cursor.name === 'Verb') return true;
-    if (!cursor.parent()) return false;
-  }
-}
-
-
-enum TypeOfStatement { Triple, Directive }
-
-function goToTypeOfStatement(cursor: TreeCursor)
-: { type: TypeOfStatement, path: string } | null {
+function goToTypeOfStatement(cursor: TreeCursor): TypeOfStatement | null {
   const path = cursorGoesTo(cursor, ['Triples', 'Directive']);
-  if (path === false) {
-    return null;
-  }
-
-  if (cursor.type.name === 'Triples') {
-    return { type: TypeOfStatement.Triple, path };
-  } else if (cursor.type.name === 'Directive') {
-    return { type: TypeOfStatement.Directive, path };
-  } else {
-    return null;
-  }
+  if (!path) return null;
+  if (cursor.type.name === 'Triples') return TypeOfStatement.Triple;
+  if (cursor.type.name === 'Directive') return TypeOfStatement.Directive;
+  return null;
 }
 
-function cursorGoesTo(cursor: TreeCursor, alternatives: string[]): string | false {
-  let hierarchy = "";
-
-  const append = (type: string) => {
-    if (hierarchy.length !== 0) hierarchy += '<';
-    hierarchy += type;
-  };
-
+function cursorGoesTo(cursor: TreeCursor, alternatives: string[]): boolean {
   while (!alternatives.includes(cursor.type.name)) {
-    append(cursor.type.name);
-
     const hasParent = cursor.parent();
     if (!hasParent) return false;
   }
 
-  append(cursor.type.name);
-
-  return hierarchy;
+  return true;
 }
 
 
-function computeHierarchy(syntaxNode: SyntaxNode): string {
-  const cursor = syntaxNode.cursor;
-
-  let path = cursor.name;
-
-  while (cursor.parent()) {
-    path = cursor.name + " > " + path;
-  }
-
-  return path;
-}
 
 
 ///////////////////////////////////////////////////////////////////////////////
 // For debug
 
+/** Put in the HTLM the various info about the current state */
 function injectSituation(currentSituation: CurrentSituation) {
   const pathEl = document.getElementById('current_path');
 
@@ -192,15 +151,19 @@ function injectSituation(currentSituation: CurrentSituation) {
   typesEl.appendChild(document.createTextNode(typesText));
 }
 
-///////////////////////////////////////////////////////////////////////////////
+/** Return a string that represents the hierarchy to reach syntaxNode */
+function computeHierarchy(syntaxNode: SyntaxNode): string {
+  const cursor = syntaxNode.cursor;
 
-/**
- * Return the token completionCtx[node.from:node.to]
- */
-function extractFromCompletitionContext(
-  completionCtx: CompletionContext, node: SyntaxNode
-) {
-  return completionCtx.state.sliceDoc(node.from, node.to);
+  let path = cursor.name;
+
+  while (cursor.parent()) {
+    path = cursor.name + " > " + path;
+  }
+
+  return path;
 }
+
+///////////////////////////////////////////////////////////////////////////////
 
 
