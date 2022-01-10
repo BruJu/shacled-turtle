@@ -71,7 +71,6 @@ export default class SuggestionDatabase {
    * @returns All possible predicates
    */
   getAllRelevantPathsOfType(type: RDF.Term): RDF.Term[] {
-    console.log(this._typeToPaths);
     return this._typeToPaths.get(type) || [];
   }
 }

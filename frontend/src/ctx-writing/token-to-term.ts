@@ -31,6 +31,8 @@ export function syntaxNodeToTerm(
     throw Error("syntaxNodeToTerm can only be used on Subject, Verb and Object, but was called on a " + syntaxNode.name);
   }
 
+  if (syntaxNode.name === 'BlankNodePropertyList') return AnonymousBlankNode;
+
   const child = syntaxNode.firstChild;
   if (child === null) {
     if ("a" === editorState.sliceDoc(syntaxNode.from, syntaxNode.to)) {
@@ -41,7 +43,6 @@ export function syntaxNodeToTerm(
   }
   
   if (child.name === 'Anon') return AnonymousBlankNode;
-  if (child.name === 'BlankNodePropertyList') return AnonymousBlankNode;
 
   if (child.name === 'PrefixedName') {
     return prefixedNameSyntaxNodeToTerm(editorState, directives, child);
