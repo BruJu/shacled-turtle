@@ -30,23 +30,15 @@ export function syntaxNodeToTerm(
     throw Error("syntaxNodeToTerm can only be used on Subject, Verb and Object, but was called on a " + syntaxNode.name);
   }
 
-  console.log("syntaxNodeToTerm called on a", editorState.sliceDoc(syntaxNode.from, syntaxNode.to));
-
   const child = syntaxNode.firstChild;
   if (child === null) {
     if ("a" === editorState.sliceDoc(syntaxNode.from, syntaxNode.to)) {
-      console.log("a -> path a");
       return ns.rdf.type;
     }
 
     return null;
   }
   
-  if ("a" === editorState.sliceDoc(syntaxNode.from, syntaxNode.to)) {
-    console.log("a -> path b");
-    return ns.rdf.type;
-  }
-
   if (child.name === 'Anon') return AnonymousBlankNode;
   if (child.name === 'BlankNodePropertyList') return AnonymousBlankNode;
 

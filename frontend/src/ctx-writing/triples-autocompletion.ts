@@ -1,5 +1,5 @@
 import { EditorState } from "@codemirror/state";
-import { SyntaxNode, Tree, TreeCursor } from "@lezer/common";
+import { SyntaxNode, Tree } from "@lezer/common";
 import { CurrentSituation, TurtleDirectives } from "./autocompletion-solving";
 import namespace from '@rdfjs/namespace';
 import * as RDF from '@rdfjs/types';
@@ -9,6 +9,7 @@ import TermSet from "@rdfjs/term-set";
 import { ns } from "../PRECNamespace";
 import SuggestionDatabase from "./SuggestionDatabase";
 import { termToString } from 'rdf-string';
+import { DataFactory } from "n3";
 
 let suggestions: SuggestionDatabase | null = null;
 SuggestionDatabase.load(/* PREC Shacl Graph */).then(db => suggestions = db);
@@ -37,7 +38,6 @@ export function tripleAutocompletion(
     tree, triplesSyntaxNode, situation
   );
   if (subject === null) return null;
-  if (subject.term === AnonymousBlankNode) return null;
 
   const word = compCtx.matchBefore(/[a-zA-Z"'0-9_+-/<>:\\]*/);
   if (word === null) return null;
@@ -159,7 +159,14 @@ function getSubjectInfo(
   if (theSubjectTerm === null) {
     return null;
   } else if (theSubjectTerm === AnonymousBlankNode) {
+    situation.subjectTerm = DataFactory.blankNode("Anonymous");
 
+    const theAnonNode = triples.firstChild;
+    if (theAnonNode) {
+      extractAllTypesOfPredicateObjectList(
+        editorState, directives, theAnonNode, typesOfSubject
+      );
+    }
   } else {
     situation.subjectTerm = theSubjectTerm;
     allTypesOf(editorState, directives, tree, theSubjectTerm, typesOfSubject);
@@ -178,16 +185,18 @@ function allTypesOf(
   destination: TermSet = new TermSet()
 ): TermSet {
   for (const triples of tree.topNode.getChildren("Triples")) {
+    // Get the subject syntax node of this triples
     let child = triples.firstChild;
-
     if (child === null) continue;
     if (child.name !== 'Subject') continue;
 
+    // Is the subject of this triple the right subject?
     const subject = syntaxNodeToTerm(editorState, directives, child);
     if (subject === null) continue;
     if (subject === AnonymousBlankNode) continue;
     if (!subject.equals(term)) continue;
 
+    // Yes -> extract all values of rdf:type
     extractAllTypesOfPredicateObjectList(editorState, directives, child, destination);
   }
 
@@ -203,12 +212,15 @@ function extractAllTypesOfPredicateObjectList(
   let rdfType = false;
 
   let node: SyntaxNode | null = cursor; // On Subject
+  if (node.name !== 'Subject') {
+    console.error("extractAllTypesOfPredicateObjectList called on " + node.name);
+  }
 
   while (true) {
     node = node.nextSibling;
     if (node === null) break;
 
-    console.log(node.name);
+//    console.log(node.name);
 
     if (node.name === 'Verb') {
       const predicate = syntaxNodeToTerm(editorState, directives, node);
