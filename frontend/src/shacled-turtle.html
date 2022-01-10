@@ -1,18 +1,19 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <title>SHACLed Turtle Editor</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
   </head>
   <body>
     <section class="section">
-      <div class="container">
-        <h1 class="title is-1">PREC Context Writer</h1>
+      <div class="container content">
+        <h1 class="title is-1">SHACLed Turtle Editor</h1>
 
         <p>
-          This page displays a code editor that enables to write a
+          This page displays a Turtle code editor that uses Code Completion
+          based on the content of a SHACL graph. By default, the used shape
+          graph is the <a id="prec_shacl_graph">shape graph</a> used to validate
           <a href="https://github.com/BruJu/PREC">PREC context</a>.
-          The code editor has some autocompletion backed by the
-          <a id="prec_shacl_graph">SHACL graph that describes PREC context graphs.</a>
         </p>
 
         <div class="field is-grouped">
@@ -36,6 +37,6 @@
       </div>
     </section>
 
-    <script type="module" src="context.ts"></script>
+    <script type="module" src="shacled-turtle.ts"></script>
   </body>
 </html>
