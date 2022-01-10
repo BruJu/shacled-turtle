@@ -87,3 +87,17 @@ TurtleDoc(
  )
 )
 
+
+# Anon blank nodes
+
+_:toto :knows [  ] .
+
+==>
+TurtleDoc(
+ Triples(
+  Subject(BlankNode),
+  Verb(PrefixedName(PN_LOCAL)),
+  Object(Anon)
+ )
+)
+

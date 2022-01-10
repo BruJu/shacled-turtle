@@ -4,7 +4,7 @@
   "description": "PREC demonstration website front-end",
   "source": "./src/index.html",
   "scripts": {
-    "start": "npx parcel ./src/index.html ./src/context.html",
+    "start": "npx parcel ./src/index.html ./src/context.html -p 12345",
     "build": "npx parcel build ./src/index.html ./src/context.html --public-url ./ --dist-dir ./dist",
     "test": "echo \"Error: no test specified\" && exit 1",
     "updatelang": "cd ../lang-turtle && npm pack && cd ../frontend && npm uninstall @bruju/lang-turtle && npm install ../lang-turtle/bruju-lang-turtle-0.1.0.tgz"

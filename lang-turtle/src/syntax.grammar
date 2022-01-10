@@ -17,9 +17,11 @@ Triples { Subject predicateObjectList /* incomplete rule */ }                   
 predicateObjectList { Verb objectList (';' (Verb objectList)?)* }               // [7] predicateObjectList ::= verb objectList (';' (verb objectList)?)*
 objectList { Object (',' Object)* }                                             // [8] objectList ::= object (',' object)*
 Verb { predicate | 'a' }                                                        // [9]  verb         ::= predicate | 'a'
-Subject { iri | BlankNode /* incomplete rule */ }                               // [10] subject      ::= iri | BlankNode | collection
+Subject { iri | blanknode_rule /* incomplete rule */ }                               // [10] subject      ::= iri | BlankNode | collection
 predicate { iri }                                                               // [11] predicate    ::= iri
-Object { iri | BlankNode | Literal /* incomplete rule */ }                      // [12] object       ::= iri | BlankNode | collection | blankNodePropertyList | literal
+Object { iri | blanknode_rule | Literal /* incomplete rule */ }                      // [12] object       ::= iri | BlankNode | collection | blankNodePropertyList | literal
+
+BlankNodePropertyList { '[' predicateObjectList ']' }                           // [14] 	blankNodePropertyList 	::= 	'[' predicateObjectList ']'
 
 iri { IRIREF | PrefixedName }                                                   // [135s] 	iri 	::= 	IRIREF | PrefixedName
 
@@ -30,14 +32,15 @@ PrefixedName { PN_PREFIX? ':' PN_LOCAL }
 
 Literal { string_literal_quote }
 
-BlankNode { blank_node_label }
+blanknode_rule { BlankNode | Anon }                                             // [137s] 	BlankNode 	::= 	BLANK_NODE_LABEL | ANON
+
 
 @tokens {
   @precedence { 'a', base_token, prefix_token, PN_PREFIX }
 
   IRIREF { '<' $[a-zA-Z_\-0-9/+.:#]* '>' }
 
-  blank_node_label { '_:' $[a-zA-Z0-9]+ }
+  BlankNode { '_:' $[a-zA-Z0-9]+ }                                              // [141s] 	BLANK_NODE_LABEL 	::= 	'_:' (PN_CHARS_U | [0-9]) ((PN_CHARS | '.')* PN_CHARS)?
 
   string_literal_quote { '"' $[a-zA-Z0-9 _+]* '"' }
 
@@ -58,6 +61,7 @@ BlankNode { blank_node_label }
 
   pn_chars_base { $[a-zA-Z0-9]+ }
 
+  Anon { '[' space? ']' }                                                       // [162s] 	ANON 	::= 	'[' WS* ']'
 
   // TODO: case insensitive tokens
   base_token { "BASE" | "base" }
