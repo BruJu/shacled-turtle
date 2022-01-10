@@ -24,7 +24,7 @@ export const TurtleLanguage = LRLanguage.define({
         LineComment: t.lineComment,
         '_:': t.operator,
         ':': t.operator,
-        PN_PREFIX: t.operator,
+        PN_PREFIX: t.namespace,
         'a': t.meta,
         '@prefix': t.meta,
         'BASE': t.meta,
@@ -32,7 +32,9 @@ export const TurtleLanguage = LRLanguage.define({
         "base": t.meta,
         "prefix": t.meta,
         '@base': t.meta,
-        'BlankNodeLabel': t.variableName
+        'BlankNodeLabel': t.variableName,
+        'NumericLiteral': t.unit,
+        'BooleanLiteral': t.unit
       })
     ]
   }),

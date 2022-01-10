@@ -1,0 +1,35 @@
+# Raw RDF Literals
+
+[] <islegit>
+  "hello world",
+  "hello world"@en,
+  "bonjour le monde"@fr-FR,
+  "hello world"^^xsd:string .
+
+==>
+TurtleDoc(
+  Triples(
+    Subject(Anon),
+    Verb(IRIREF),
+    Object(RDFLiteral),
+    Object(RDFLiteral),
+    Object(RDFLiteral),
+    Object(RDFLiteral(PrefixedName(PN_PREFIX, PN_LOCAL)))
+  )
+)
+
+
+# Non RDFLiterals literals
+
+[] <islegit> 3, .5, true, false .
+
+==>
+
+TurtleDoc(
+  Triples(
+    Subject(Anon), Verb(IRIREF),
+    Object(NumericLiteral), Object(NumericLiteral),
+    Object(BooleanLiteral), Object(BooleanLiteral)
+  )
+)
+

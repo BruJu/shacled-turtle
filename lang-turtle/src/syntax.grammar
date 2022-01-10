@@ -22,30 +22,53 @@ objectList { Object (',' Object)* }                                             
 Verb { predicate | 'a' }                                                        // [9]  verb         ::= predicate | 'a'
 Subject { iri | blanknode_rule /* incomplete rule */ }                               // [10] subject      ::= iri | BlankNode | collection
 predicate { iri }                                                               // [11] predicate    ::= iri
-Object { iri | blanknode_rule | Literal /* incomplete rule */ }                      // [12] object       ::= iri | BlankNode | collection | blankNodePropertyList | literal
-
+Object { iri | blanknode_rule | literal /* incomplete rule */ }                 // [12] object       ::= iri | BlankNode | collection | blankNodePropertyList | literal
+literal { RDFLiteral | NumericLiteral | BooleanLiteral }                        // [13]     literal  ::= RDFLiteral | NumericLiteral | BooleanLiteral
 BlankNodePropertyList { '[' predicateObjectList ']' }                           // [14] 	blankNodePropertyList 	::= 	'[' predicateObjectList ']'
 
+
+RDFLiteral { string (langtag | '^^' iri )? }                                    // [128s] 	RDFLiteral 	::= 	String (LANGTAG | '^^' iri)?
+NumericLiteral { integer | decimal | double }                                   // [16]     NumericLiteral  ::=   INTEGER | DECIMAL | DOUBLE
+BooleanLiteral { 'true' | 'false' }                                             // [133s]   BooleanLiteral 	::= 	'true' | 'false'
+
+
+
+
+
+
+
+Literal { string_literal_quote }
 iri { IRIREF | PrefixedName }                                                   // [135s] 	iri 	::= 	IRIREF | PrefixedName
+blanknode_rule { BlankNode | Anon }                                             // [137s] 	BlankNode 	::= 	BLANK_NODE_LABEL | ANON
+
+
 
 // [136s] 	PrefixedName 	::= 	PNAME_LN | PNAME_NS
 // PrefixedName { PNAME_LN }
 
 PrefixedName { PN_PREFIX? ':' PN_LOCAL }
 
-Literal { string_literal_quote }
 
-blanknode_rule { BlankNode | Anon }                                             // [137s] 	BlankNode 	::= 	BLANK_NODE_LABEL | ANON
 
+string { string_literal_quote }
 
 @tokens {
-  @precedence { 'a', base_token, prefix_token, PN_PREFIX }
+  @precedence { 'a', base_token, prefix_token, 'true', 'false', PN_PREFIX, integer, decimal, double }
 
   IRIREF { '<' $[a-zA-Z_\-0-9/+.:#]* '>' }
 
   BlankNode { '_:' $[a-zA-Z0-9]+ }                                              // [141s] 	BLANK_NODE_LABEL 	::= 	'_:' (PN_CHARS_U | [0-9]) ((PN_CHARS | '.')* PN_CHARS)?
-
+  langtag { '@' $[a-zA-Z]+ ( '-' $[a-zA-Z0-9]+ )* }                             // [144s]   LANGTAG  ::= '@' [a-zA-Z]+ ('-' [a-zA-Z0-9]+)*
+  integer { $[+-]? $[0-9]+ }                                                    // [19]     INTEGER  ::=  [+-]? [0-9]+
+  decimal { $[+-]? $[0-9]* '.' $[0-9]+ }                                        // [20]     DECIMAL  ::=  [+-]? [0-9]* '.' [0-9]+
+  double  {                                                                     // [21]     DOUBLE   ::=  [+-]? ([0-9]+ '.' [0-9]* EXPONENT | '.' [0-9]+ EXPONENT | [0-9]+ EXPONENT)
+    $[+-]?
+    ($[0-9]+ '.' $[0-9]* exponent | '.' $[0-9]+ exponent | $[0-9]+ exponent)
+  }
+  exponent { $[eE] $[+-]? $[0-9]+ }                                             // [154s]  EXPONENT  ::= 	[eE] [+-]? [0-9]+
   string_literal_quote { '"' $[a-zA-Z0-9 _+]* '"' }
+
+
 
   "."
 
@@ -55,7 +78,7 @@ blanknode_rule { BlankNode | Anon }                                             
 
   PN_LOCAL { $[a-zA-Z0-9_]+ }
 
-  PN_PREFIX { pn_chars_base+ }
+  PN_PREFIX { $[a-zA-Z] pn_chars_base* }
 
   
   pn_chars_u { pn_chars_base | '_' }                                            // [164s] 	PN_CHARS_U 	::= 	PN_CHARS_BASE | '_'
