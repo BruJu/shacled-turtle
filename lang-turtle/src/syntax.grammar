@@ -1,18 +1,15 @@
-@top TurtleDoc { (statement '.'*)* }         /* [1] 	turtleDoc 	::= 	statement* */
+@top TurtleDoc { (statement '.'*)* }                                            /* [1] 	turtleDoc 	::= 	statement* */
 
 @skip { space | LineComment }
 
 // https://www.w3.org/TR/turtle/#sec-grammar-grammar
 
-statement { Directive | Triples '.' }                                     // [2]  statement    ::= directive | triples '.'
+statement { Directive | Triples '.' }                                           // [2]  statement    ::= directive | triples '.'
 Directive { PrefixID | Base | SparqlPrefix | SparqlBase }                       // [3] 	directive    ::= prefixID | base | sparqlPrefix | sparqlBase
-PrefixID { '@prefix' PN_PREFIX ':' IRIREF '.' }                                      // [4] 	prefixID     ::= '@prefix' PNAME_NS IRIREF '.'
+PrefixID { '@prefix' PN_PREFIX ':' IRIREF '.' }                                 // [4] 	prefixID     ::= '@prefix' PNAME_NS IRIREF '.'
 Base { '@base' IRIREF '.' }                                                     // [5]  base         ::= '@base' IRIREF '.'
-SparqlBase { base_token IRIREF  }                                       // [5s] sparqlBase   ::= "BASE" IRIREF
-SparqlPrefix { prefix_token PN_PREFIX ':' IRIREF }                                           // [6s] sparqlPrefix ::= "PREFIX" PNAME_NS IRIREF
-
-
-
+SparqlBase { base_token IRIREF  }                                               // [5s] sparqlBase   ::= "BASE" IRIREF
+SparqlPrefix { prefix_token PN_PREFIX ':' IRIREF }                              // [6s] sparqlPrefix ::= "PREFIX" PNAME_NS IRIREF
 Triples {                                                                       // [6] triples ::= subject predicateObjectList | blankNodePropertyList predicateObjectList?
   Subject predicateObjectList
   | BlankNodePropertyList predicateObjectList?
@@ -20,13 +17,12 @@ Triples {                                                                       
 predicateObjectList { Verb objectList (';' (Verb objectList)?)* }               // [7] predicateObjectList ::= verb objectList (';' (verb objectList)?)*
 objectList { Object (',' Object)* }                                             // [8] objectList ::= object (',' object)*
 Verb { predicate | 'a' }                                                        // [9]  verb         ::= predicate | 'a'
-Subject { iri | blanknode_rule /* incomplete rule */ }                               // [10] subject      ::= iri | BlankNode | collection
+Subject { iri | blanknode_rule | Collection }                                   // [10] subject      ::= iri | BlankNode | collection
 predicate { iri }                                                               // [11] predicate    ::= iri
-Object { iri | blanknode_rule | literal /* incomplete rule */ }                 // [12] object       ::= iri | BlankNode | collection | blankNodePropertyList | literal
-literal { RDFLiteral | NumericLiteral | BooleanLiteral }                        // [13]     literal  ::= RDFLiteral | NumericLiteral | BooleanLiteral
-BlankNodePropertyList { '[' predicateObjectList ']' }                           // [14] 	blankNodePropertyList 	::= 	'[' predicateObjectList ']'
-
-
+Object { iri | blanknode_rule | Collection | literal | BlankNodePropertyList }  // [12] object       ::= iri | BlankNode | collection | blankNodePropertyList | literal
+literal { RDFLiteral | NumericLiteral | BooleanLiteral }                        // [13] literal  ::= RDFLiteral | NumericLiteral | BooleanLiteral
+BlankNodePropertyList { '[' predicateObjectList ']' }                           // [14] BlankNodePropertyList 	::= 	'[' predicateObjectList ']'
+Collection { '(' Object * ')' }                                                 // [15] collection ::= '(' object* ')'
 RDFLiteral { string (langtag | '^^' iri )? }                                    // [128s] 	RDFLiteral 	::= 	String (LANGTAG | '^^' iri)?
 NumericLiteral { integer | decimal | double }                                   // [16]     NumericLiteral  ::=   INTEGER | DECIMAL | DOUBLE
 BooleanLiteral { 'true' | 'false' }                                             // [133s]   BooleanLiteral 	::= 	'true' | 'false'

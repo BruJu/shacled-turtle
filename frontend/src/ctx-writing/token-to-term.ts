@@ -43,6 +43,7 @@ export function syntaxNodeToTerm(
   }
   
   if (child.name === 'Anon') return AnonymousBlankNode;
+  if (child.name === 'Collection') return AnonymousBlankNode;
 
   if (child.name === 'PrefixedName') {
     return prefixedNameSyntaxNodeToTerm(editorState, directives, child);
