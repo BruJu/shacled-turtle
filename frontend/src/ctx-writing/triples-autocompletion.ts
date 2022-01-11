@@ -31,6 +31,11 @@ enum SVO {
   Collection
 };
 
+type CurrentNodeAnalysis = {
+  types: TermSet;
+  subjectOf: TermSet;
+};
+
 export function tripleAutocompletion(
   compCtx: CompletionContext,
   tree: Tree,
@@ -45,7 +50,7 @@ export function tripleAutocompletion(
   const word = compCtx.matchBefore(/[a-zA-Z"'0-9_+-/<>:\\]*/);
   if (word === null) return null;
 
-  situation.typesOfSubject = [...subject.types];
+  situation.typesOfSubject = [...subject.analysis.types];
 
   if (suggestions === null) return null;
 
@@ -56,7 +61,7 @@ export function tripleAutocompletion(
   if (currentSVO === SVO.Verb) {
     const subjectReq = subject.term === AnonymousBlankNode ? undefined : subject.term;
     const possiblePredicates = suggestions.getAllRelevantPathsOfType(
-      subjectReq, [...subject.types], []
+      subjectReq, subject.analysis.types, subject.analysis.subjectOf
     );
 
     options = [
@@ -186,17 +191,19 @@ function getSubjectInfo(
 
   if (subjectTerm === null) return null;
 
-  let typesOfSubject = new TermSet();
+  let analysis: CurrentNodeAnalysis = {
+    types: new TermSet(), subjectOf: new TermSet()
+  };
 
   if (subjectTerm === AnonymousBlankNode) { // Local search
     situation.subjectTerm = DataFactory.blankNode("Anonymous");
-    extractAllTypes(editorState, directives, subjectSyntaxNode, typesOfSubject);
+    extractAllTypes(editorState, directives, subjectSyntaxNode, analysis);
   } else { // Search in all triples
     situation.subjectTerm = subjectTerm;
-    allTypesOf(editorState, directives, tree, subjectTerm, typesOfSubject);
+    allTypesOf(editorState, directives, tree, subjectTerm, analysis);
   }
 
-  return { term: subjectTerm, types: typesOfSubject, currentSVO: currentSVO };
+  return { term: subjectTerm, analysis: analysis, currentSVO: currentSVO };
 }
 
 
@@ -222,8 +229,8 @@ function allTypesOf(
   editorState: EditorState,
   directives: TurtleDirectives,
   tree: Tree, term: RDF.Term, 
-  destination: TermSet = new TermSet()
-): TermSet {
+  destination: CurrentNodeAnalysis
+) {
   for (const triples of tree.topNode.getChildren("Triples")) {
     // Get the subject syntax node of this triples
     let child = triples.firstChild;
@@ -239,8 +246,6 @@ function allTypesOf(
     // Yes -> extract all values of rdf:type
     extractAllTypes(editorState, directives, child, destination);
   }
-
-  return destination;
 }
 
 /**
@@ -251,8 +256,8 @@ function extractAllTypes(
   editorState: EditorState,
   directives: TurtleDirectives,
   node: SyntaxNode,
-  destination: TermSet = new TermSet()
-): TermSet {
+  destination: CurrentNodeAnalysis
+) {
   if (node.name === 'BlankNodePropertyList') {
 
     extractAllTypesOfVerbAndObjectList(
@@ -272,15 +277,13 @@ function extractAllTypes(
   } else {
     console.error("extractAllTypesOfPredicateObjectList called on " + node.name);
   }
-
-  return destination;
 }
 
 function extractAllTypesOfVerbAndObjectList(
   editorState: EditorState,
   directives: TurtleDirectives,
   node: SyntaxNode | null,
-  destination: TermSet = new TermSet()
+  destination: CurrentNodeAnalysis
 ) {
   let rdfType = false;
 
@@ -288,13 +291,18 @@ function extractAllTypesOfVerbAndObjectList(
 //    console.log(node.name);
     if (node.name === 'Verb') {
       const predicate = syntaxNodeToTerm(editorState, directives, node);
-      rdfType = predicate !== null && predicate !== AnonymousBlankNode
-        && ns.rdf.type.equals(predicate);
+
+      if (predicate !== null && predicate !== AnonymousBlankNode) {
+        destination.subjectOf.add(predicate);
+        rdfType = ns.rdf.type.equals(predicate);
+      } else {
+        rdfType = false;
+      }
     } else if (node.name === 'Object') {
       if (rdfType) {
         const object = syntaxNodeToTerm(editorState, directives, node);
         if (object !== null && object !== AnonymousBlankNode) {
-          destination.add(object);
+          destination.types.add(object);
         }
       }
     }

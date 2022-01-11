@@ -70,7 +70,7 @@ export default class SuggestionDatabase {
    * @returns All possible predicates
    */
   getAllRelevantPathsOfType(
-    node: RDF.Term | undefined, types: RDF.Term[], subjectOf: RDF.Term[]
+    node: RDF.Term | undefined, types: RDF.Term[] | TermSet, subjectOf: RDF.Term[] | TermSet
   ): TermSet {
     let paths = new TermSet();
 
@@ -171,8 +171,8 @@ function extractListOfNodeShapes(shapeGraph: RDF.DatasetCore)
   const targetPredicates: { predicate: RDF.Term, target: keyof(ShapeTargets) }[] = [
     { predicate: ns.sh.targetClass, target: 'class' },
     { predicate: ns.sh.targetNode, target: 'node' },
-    { predicate: ns.sh.targetObjectsOf, target: 'subjectsOf' },
-//    { predicate: ns.sh.targetSubjectsOf, target: 'objectsOf' }
+    { predicate: ns.sh.targetSubjectsOf, target: 'subjectsOf' },
+//    { predicate: ns.sh.targetObjectsOf, target: 'objectsOf' }
   ];
 
   for (const { predicate, target } of targetPredicates) {
