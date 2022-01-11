@@ -3,7 +3,7 @@ import TermSet from '@rdfjs/term-set';
 import * as RDF from '@rdfjs/types';
 import axios from 'axios';
 import * as n3 from 'n3';
-import { stringToTerm, termToString } from 'rdf-string';
+import { termToString } from 'rdf-string';
 import { $defaultGraph, $quad, ns } from '../PRECNamespace';
 
 // Term suggestion database that resorts to a SHACL shape graph.

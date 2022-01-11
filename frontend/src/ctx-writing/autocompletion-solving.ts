@@ -47,7 +47,7 @@ export default function autocompletionSolve(context: CompletionContext)
     retval = directiveAutocompletion(context, cursor.node, theNode);
   } else if (typeOfStatement === TypeOfStatement.Triple) {
     situation.autocompletionType = 'triples';
-    retval = tripleAutocompletion(context, tree, cursor.node, theNode, situation);
+    retval = tripleAutocompletion(context, tree, theNode, situation);
   }
 
   injectSituation(situation);

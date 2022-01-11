@@ -24,28 +24,22 @@ export async function changeShaclGraph(url: string): Promise<boolean> {
   }
 }
 
-enum SVO { Subject, Verb, Object, None };
+enum SVO {
+  Subject, Verb, Object,
+  None,
+  BlankNodePropertyList,
+  Collection
+};
 
 export function tripleAutocompletion(
   compCtx: CompletionContext,
   tree: Tree,
-  triplesSyntaxNode: SyntaxNode,
   currentNode: SyntaxNode,
   situation: CurrentSituation
 ): CompletionResult | null {
   const directives = extractDirectives(compCtx.state, tree.topNode);
 
-  const currentSVO = getSVOOf(currentNode);
-
-  if (currentSVO === SVO.None) {
-    return null;
-  } else if (currentSVO === SVO.Subject) {
-    return null;
-  }
-
-  const subject = getSubjectInfo(compCtx.state, directives,
-    tree, triplesSyntaxNode, situation
-  );
+  const subject = getSubjectInfo(compCtx.state, directives, tree, currentNode, situation);
   if (subject === null) return null;
 
   const word = compCtx.matchBefore(/[a-zA-Z"'0-9_+-/<>:\\]*/);
@@ -56,6 +50,8 @@ export function tripleAutocompletion(
   if (suggestions === null) return null;
 
   let options: Completion[] = [];
+
+  const currentSVO = subject.currentSVO;
 
   if (currentSVO === SVO.Verb) {
     const subjectReq = subject.term === AnonymousBlankNode ? undefined : subject.term;
@@ -71,10 +67,25 @@ export function tripleAutocompletion(
   } else if (currentSVO === SVO.Object) {
     let cursor = currentNode.cursor;
     // Reach Object
-    while (cursor.type.name !== 'Object') cursor.parent();
+    while (cursor.type.name !== 'Object') {
+      if (!cursor.parent()) return null;
+    }
+
+    {
+      // Collections are catched on the next while but it is cleaner
+      // to explicit this case
+      const c = cursor.node;
+      if (c.parent && c.parent.type.name === 'Collection') {
+        return null;
+      }
+    }
+    
     // Go to corresponding verb
     // @ts-ignore 2367
-    while (cursor.type.name !== 'Verb') cursor.prevSibling();
+    while (cursor.type.name !== 'Verb') {
+      if (!cursor.prevSibling()) return null;
+    }
+
     
     const t = syntaxNodeToTerm(compCtx.state, directives, cursor.node);
     if (t !== null && t !== AnonymousBlankNode && ns.rdf.type.equals(t)) {
@@ -123,63 +134,87 @@ function extractDirectives(editorState: EditorState, tree: SyntaxNode): TurtleDi
 
 ////////////////////////////////////////////////////////////////////////////////
 
-function getSVOOf(node: SyntaxNode) {
+function goToUnitNode(node: SyntaxNode): { type: SVO, node: SyntaxNode } {
   let x: SyntaxNode | null = node;
   while (true) {
-    if (x === null) return SVO.None;
-    if (x.type.name === 'Subject') return SVO.Subject;
-    if (x.type.name === 'BlankNodePropertyList') return SVO.Subject;
-    if (x.type.name === 'Verb') return SVO.Verb;
-    if (x.type.name === 'Object') return SVO.Object;
+    if (x === null) {
+      return { type: SVO.None, node: node };
+    }
+    if (x.type.name === 'Subject') return { type: SVO.Subject, node: x };
+    if (x.type.name === 'BlankNodePropertyList') {
+      return { type: SVO.BlankNodePropertyList, node: x };
+    }
+    if (x.type.name === 'Verb') return { type: SVO.Verb, node: x };
+    if (x.type.name === 'Object') return { type: SVO.Object, node: x };
+    if (x.type.name === 'Collection') return { type: SVO.Collection, node: x };
     
     x = x.parent;
   }
 }
 
-
 function getSubjectInfo(
   editorState: EditorState,
   directives: TurtleDirectives,
   tree: Tree,
-  triples: SyntaxNode,
+  currentNode: SyntaxNode,
   situation: CurrentSituation
 ) {
-  const cursor = triples.cursor;
-  cursor.firstChild();
+  const { type: currentSVO, node: node } = goToUnitNode(currentNode);
 
-  if (cursor.type.name === 'BlankNodePropertyList') {
-    situation.subjectText = "BlankNodePropertyList";
-  } else if (cursor.type.name === 'Subject') {
-    const subjectRaw = editorState.sliceDoc(cursor.from, cursor.to);
-    situation.subjectText = subjectRaw;
-  } else {
-    situation.subjectText = "Some (unsupported) " + cursor.type.name;
+  if (currentSVO === SVO.None) {
+    return null;
+  } else if (currentSVO === SVO.Subject) {
     return null;
   }
 
-  const theSubjectTerm = syntaxNodeToTerm(editorState, directives, cursor.node);
+  const subjectSyntaxNode = findSubjectSyntaxNode(node);
+  if (!subjectSyntaxNode) return null;
+
+  let subjectTerm: RDF.Term | typeof AnonymousBlankNode | null;
+
+  if (subjectSyntaxNode.type.name === "Subject") {
+    const subjectRaw = editorState.sliceDoc(subjectSyntaxNode.from, subjectSyntaxNode.to);
+    situation.subjectText = subjectRaw;
+    subjectTerm = syntaxNodeToTerm(editorState, directives, subjectSyntaxNode);
+  } else if (subjectSyntaxNode.type.name === "BlankNodePropertyList") {
+    situation.subjectText = "BlankNodePropertyList";
+    subjectTerm = AnonymousBlankNode;
+  } else {
+    console.error("getSubjectInfo: found subject of type " + subjectSyntaxNode.type.name);
+    return null;
+  }
+
+  if (subjectTerm === null) return null;
 
   let typesOfSubject = new TermSet();
 
-  if (theSubjectTerm === null) {
-    return null;
-  } else if (theSubjectTerm === AnonymousBlankNode) {
+  if (subjectTerm === AnonymousBlankNode) { // Local search
     situation.subjectTerm = DataFactory.blankNode("Anonymous");
-
-    const theAnonNode = triples.firstChild;
-    if (theAnonNode) {
-      extractAllTypes(
-        editorState, directives, theAnonNode, typesOfSubject
-      );
-    }
-  } else {
-    situation.subjectTerm = theSubjectTerm;
-    allTypesOf(editorState, directives, tree, theSubjectTerm, typesOfSubject);
+    extractAllTypes(editorState, directives, subjectSyntaxNode, typesOfSubject);
+  } else { // Search in all triples
+    situation.subjectTerm = subjectTerm;
+    allTypesOf(editorState, directives, tree, subjectTerm, typesOfSubject);
   }
 
-  return { term: theSubjectTerm, types: typesOfSubject };
+  return { term: subjectTerm, types: typesOfSubject, currentSVO: currentSVO };
 }
 
+
+function findSubjectSyntaxNode(node: SyntaxNode | null) {
+  while (node !== null) {
+    if (node.type.name === 'BlankNodePropertyList') {
+      return node;
+    }
+
+    if (node.type.name === "Triples") {
+      return node.firstChild;
+    }
+
+    node = node.parent;
+  }
+
+  return null;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -219,18 +254,25 @@ function extractAllTypes(
   destination: TermSet = new TermSet()
 ): TermSet {
   if (node.name === 'BlankNodePropertyList') {
+
     extractAllTypesOfVerbAndObjectList(
       editorState, directives, node.firstChild, destination
     );
-  } else if (node.name !== 'Subject') {
+
+    if (node.parent && node.parent.type.name === "Triples") {
+      extractAllTypesOfVerbAndObjectList(
+        editorState, directives, node.nextSibling, destination
+      );
+    }
+
+  } else if (node.name === 'Subject') {
+    extractAllTypesOfVerbAndObjectList(
+      editorState, directives, node.nextSibling, destination
+    );
+  } else {
     console.error("extractAllTypesOfPredicateObjectList called on " + node.name);
-    return destination;
   }
 
-  extractAllTypesOfVerbAndObjectList(
-    editorState, directives, node.nextSibling, destination
-  );
-  
   return destination;
 }
 
