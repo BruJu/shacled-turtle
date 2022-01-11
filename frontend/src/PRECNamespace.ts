@@ -18,6 +18,8 @@ export const ns = {
 /** The term for the default graph */
 export const $defaultGraph = n3.DataFactory.defaultGraph();
 
+export const $quad = n3.DataFactory.quad;
+
 /**
  * Types related to PG description in RDF. Generally not that interesting to
  * represent and contributes to "graph bloat".

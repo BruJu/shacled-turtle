@@ -58,13 +58,10 @@ export function tripleAutocompletion(
   let options: Completion[] = [];
 
   if (currentSVO === SVO.Verb) {
-    let possiblePredicates = new TermSet();
-
-    for (const type of subject.types) {
-      for (const predicate of suggestions.getAllRelevantPathsOfType(type)) {
-        possiblePredicates.add(predicate);
-      }
-    }
+    const subjectReq = subject.term === AnonymousBlankNode ? undefined : subject.term;
+    const possiblePredicates = suggestions.getAllRelevantPathsOfType(
+      subjectReq, [...subject.types], []
+    );
 
     options = [
       { label: "rdf:type" },
