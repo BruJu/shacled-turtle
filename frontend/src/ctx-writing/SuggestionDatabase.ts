@@ -17,6 +17,45 @@ import { $defaultGraph, $quad, ns } from '../PRECNamespace';
 /** The PREC validation shape graph */
 export const PREC_SHAPE_GRAPH_LINK = "https://raw.githubusercontent.com/BruJu/PREC/ContextShape/data/PRECContextShape.ttl";
 
+export type PathInfo = {
+  why: ShapeOrigin,
+  description: PathDescription;
+};
+
+export type PathDescription = {
+  labels?: RDF.Literal[];
+  descriptions?: RDF.Literal[];
+};
+
+
+/** A shape */
+class Shape {
+  /** Name of the rule */
+  readonly ruleName: RDF.Term;
+  /** List of targets */
+  readonly target: ShapeTargets;
+  /** List of predice paths */
+  readonly directPaths: TermMap<RDF.NamedNode, PathDescription> = new TermMap();
+
+  readonly info: PathDescription;
+
+  constructor(ruleName: RDF.Term) {
+    this.ruleName = ruleName;
+    this.target = {
+      node: new TermSet(),
+      class: new TermSet(),
+      subjectsOf: new TermSet(),
+//      objectsOf: new TermSet()
+    };
+    this.info = {};
+  }
+};
+
+export type ShapeOrigin =
+  { type: 'node' }
+  | { type: 'type', value: RDF.Term }
+  | { type: 'subjectOf', value: RDF.Term };
+
 /**
  * A database used to suggest some terms for auto completion, backed by a SHACL
  * graph.
@@ -61,7 +100,9 @@ export default class SuggestionDatabase {
    * uses
    */
   getAllTypes() {
-    return [...this._cache.class.keys()];
+    return [...this._cache.class].map(([term, shapes]) => (
+      { class: term, info: mergeAll(shapes.map(shape => shape.info)) }
+    ));
   }
 
   /**
@@ -71,45 +112,39 @@ export default class SuggestionDatabase {
    */
   getAllRelevantPathsOfType(
     node: RDF.Term | undefined, types: RDF.Term[] | TermSet, subjectOf: RDF.Term[] | TermSet
-  ): TermSet {
-    let paths = new TermSet();
+  ): TermMap<RDF.Term, PathInfo[]> {
+    let paths = new TermMap<RDF.Term, PathInfo[]>();
 
-    function addPathIn(shapes: Shape[] | undefined) {
+    function addPathIn(shapes: Shape[] | undefined, shapeOrigin: ShapeOrigin) {
       if (shapes === undefined) return;
 
       for (const shape of shapes) {
-        shape.directPaths.forEach(path => paths.add(path));
+        shape.directPaths.forEach((description, iri) => {
+          let info = paths.get(iri);
+          if (info === undefined) {
+            info = [];
+            paths.set(iri, info);
+          }
+          info.push({ why: shapeOrigin, description: description });
+        });
       }
     }
 
-    if (node !== undefined) addPathIn(this._cache.node.get(node));
+    if (node !== undefined) addPathIn(this._cache.node.get(node), { type: 'node' });
 
-    types.forEach(type => addPathIn(this._cache.class.get(type)));
-    subjectOf.forEach(subjectOf => addPathIn(this._cache.subjectsOf.get(subjectOf)));
+    types.forEach(type =>
+      addPathIn(this._cache.class.get(type), { type: 'type', value: type })
+    );
+
+    subjectOf.forEach(subjectOf => 
+      addPathIn(this._cache.subjectsOf.get(subjectOf), { type: 'subjectOf', value: subjectOf })
+    );
   
     return paths;
   }
 }
 
-/** A shape */
-class Shape {
-  /** Name of the rule */
-  readonly ruleName: RDF.Term;
-  /** List of targets */
-  readonly target: ShapeTargets;
-  /** List of predice paths */
-  readonly directPaths: RDF.Term[] = [];
 
-  constructor(ruleName: RDF.Term) {
-    this.ruleName = ruleName;
-    this.target = {
-      node: new TermSet(),
-      class: new TermSet(),
-      subjectsOf: new TermSet(),
-//      objectsOf: new TermSet()
-    };
-  }
-};
 
 type ShapeTargets = {
   node: TermSet,
@@ -163,6 +198,8 @@ function extractListOfNodeShapes(shapeGraph: RDF.DatasetCore)
     if (shapeGraph.has($quad(quad.subject, ns.rdf.type, ns.rdfs.Class, $defaultGraph))) {
       shape.target.class.add(quad.subject);
       addInCache('class', quad.subject, shape);
+
+      merge(shape.info, buildPathDescription(shapeGraph, quad.subject));
     }
   }
 
@@ -181,6 +218,11 @@ function extractListOfNodeShapes(shapeGraph: RDF.DatasetCore)
       shape.target[target].add(quad.object);
 
       addInCache(target, quad.object, shape);
+
+      if (target === 'class') {
+        const description = buildPathDescription(shapeGraph, quad.subject);
+        merge(shape.info, description);
+      }
     }
   }
 
@@ -203,7 +245,14 @@ function resolveShape(
 ) {
   resolved.add(ruleName);
 
-  let possiblePaths = new TermSet();
+  function addPath(iri: RDF.NamedNode, description: PathDescription) {
+    if (!shape.directPaths.has(iri)) {
+      shape.directPaths.set(iri, {});
+    }
+    
+    let obj = shape.directPaths.get(iri)!;
+    merge(obj, description);
+  }
 
   for (const { object: property } of store.match(ruleName, ns.sh.property, null, $defaultGraph)) {
     const pathValues = store.match(property, ns.sh.path, null, $defaultGraph);
@@ -214,12 +263,15 @@ function resolveShape(
     }
 
     for (const pathValueQuad of pathValues) {
-      possiblePaths.add(pathValueQuad.object);
+      const object = pathValueQuad.object;
+      if (object.termType !== 'NamedNode') continue;
+
+      const pathDescription = buildPathDescription(store, property);
+
+      addPath(object, pathDescription);
 //        console.log(`Shape ${termToString(shape)} uses the predicate ${termToString(pathValueQuad.object)}`);
     }
-
   }
-
 
   for (const childShapeQuad of store.match(ruleName, ns.sh.node, null, $defaultGraph)) {
     const childShapeName = childShapeQuad.object;
@@ -236,8 +288,49 @@ function resolveShape(
       resolveShape(store, childShapeName, childShape, allShapes, resolved);
     }
 
-    childShape.directPaths.forEach(path => possiblePaths.add(path));
+    childShape.directPaths.forEach((description, path) => addPath(path, description));
+  }
+}
+
+function buildPathDescription(store: RDF.DatasetCore, focus: RDF.Term): PathDescription {
+  const labels = getLiterals(
+    store.match(focus, ns.rdfs.label, null, $defaultGraph),
+    store.match(focus, n3.DataFactory.namedNode(ns.sh[''].value + 'name'), null, $defaultGraph)
+  );
+  const descriptions = getLiterals(
+    store.match(focus, ns.rdfs.comment, null, $defaultGraph),
+    store.match(focus, ns.sh.comment, null, $defaultGraph)
+  );
+
+  return { labels, descriptions }
+}
+
+function getLiterals(...quadss: Iterable<RDF.Quad>[]): RDF.Literal[] {
+  return [...quadss].flatMap(quads => [...quads].map(quad => quad.object)).filter(isLiteral);
+}
+
+function isLiteral(term: RDF.Term): term is RDF.Literal {
+  return term.termType === 'Literal';
+}
+
+function merge(destination: PathDescription, source: PathDescription) {
+  if (source.labels && source.labels.length > 0) {
+    destination.labels = destination.labels || [];
+    destination.labels.push(...source.labels);
   }
 
-  shape.directPaths.push(...possiblePaths);
+  if (source.descriptions && source.descriptions.length > 0) {
+    destination.descriptions = destination.descriptions || [];
+    destination.descriptions.push(...source.descriptions);
+  }
+}
+
+export function mergeAll(paths: PathDescription[]): PathDescription {
+  let dest: PathDescription = {};
+
+  for (const path of paths) {
+    merge(dest, path);
+  }
+
+  return dest;
 }

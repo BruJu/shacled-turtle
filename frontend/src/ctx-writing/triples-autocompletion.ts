@@ -7,7 +7,7 @@ import { Completion, CompletionContext, CompletionResult } from "@codemirror/aut
 import { AnonymousBlankNode, syntaxNodeToTerm } from "./token-to-term";
 import TermSet from "@rdfjs/term-set";
 import { ns } from "../PRECNamespace";
-import SuggestionDatabase from "./SuggestionDatabase";
+import SuggestionDatabase, { mergeAll, PathDescription, PathInfo } from "./SuggestionDatabase";
 import { termToString } from 'rdf-string';
 import { DataFactory } from "n3";
 
@@ -65,8 +65,12 @@ export function tripleAutocompletion(
     );
 
     options = [
-      { label: "rdf:type" },
-      ...[...possiblePredicates].map(term => termToOption(term, directives))
+      {
+        detail: termToCompletionLabel(ns.rdf.type, directives),
+        label: "Type of the resource",
+        apply: termToCompletionLabel(ns.rdf.type, directives)
+      },
+      ...[...possiblePredicates].map(path => pathToOption(path, directives))
     ];
 
   } else if (currentSVO === SVO.Object) {
@@ -90,11 +94,10 @@ export function tripleAutocompletion(
     while (cursor.type.name !== 'Verb') {
       if (!cursor.prevSibling()) return null;
     }
-
     
     const t = syntaxNodeToTerm(compCtx.state, directives, cursor.node);
     if (t !== null && t !== AnonymousBlankNode && ns.rdf.type.equals(t)) {
-      options = suggestions.getAllTypes().map(term => termToOption(term, directives));
+      options = suggestions.getAllTypes().map(term => typeToOption(term, directives));
     }
   } else {
     return null;
@@ -314,17 +317,65 @@ function extractAllTypesOfVerbAndObjectList(
 }
 
 function termToOption(term: RDF.Term, turtleDeclarations: TurtleDirectives): Completion {
-  if (term.termType !== 'NamedNode') {
-    return { label: `${termToString(term)}` };
+  return { label: termToCompletionLabel(term, turtleDeclarations) };
+}
+
+function pathToOption([iri, infos]: [RDF.Term, PathInfo[]], turtleDeclarations: TurtleDirectives): Completion {
+  return toOption(
+    iri,
+    mergeAll(infos.map(info => info.description)),
+    turtleDeclarations
+  )
+}
+
+function toOption(
+  iri: RDF.Term,
+  description: PathDescription,
+  turtleDeclarations: TurtleDirectives
+): Completion {
+  let res: Completion = { label: termToCompletionLabel(iri, turtleDeclarations) };
+
+  function getStrings(type: 'labels' | 'descriptions') {
+    const field = description[type];
+    if (field === undefined) return undefined;
+
+    const labels = new TermSet<RDF.Literal>(
+      field //.filter(literal => literal.datatype.equals(ns.xsd.string))
+    );
+
+    if (labels.size === 0) return undefined;
+    return [...labels].map(literal => literal.value);
   }
 
-  for (const [prefix, builder] of Object.entries(turtleDeclarations.prefixes)) {
+  
+  const info = getStrings('labels');
+  if (info) {
+    const oldLabel = res.label;
+    res.label = info.join(" / ");
+    res.detail = oldLabel;
+    res.apply = oldLabel;
+  }
+
+  const descriptions = getStrings('descriptions');
+  if (descriptions) res.info = descriptions.join("<br>");
+
+  return res;
+}
+
+function typeToOption(type: { class: RDF.Term, info: PathDescription }, directives: TurtleDirectives) {
+  return toOption(type.class, type.info, directives);
+}
+
+function termToCompletionLabel(term: RDF.Term, directives: TurtleDirectives): string {
+  if (term.termType !== 'NamedNode') return termToString(term);
+
+  for (const [prefix, builder] of Object.entries(directives.prefixes)) {
     const emptyTerm: RDF.NamedNode = builder[""];
 
     if (term.value.startsWith(emptyTerm.value)) {
-      return { label: prefix + ':' + term.value.substring(emptyTerm.value.length)};
+      return prefix + ':' + term.value.substring(emptyTerm.value.length);
     }    
   }
 
-  return { label: `<${termToString(term)}>` };
+  return `<${termToString(term)}>`;
 }
