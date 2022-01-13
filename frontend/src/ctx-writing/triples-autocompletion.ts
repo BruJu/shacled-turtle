@@ -76,7 +76,7 @@ export function tripleAutocompletion(
   } else if (currentSVO === SVO.Object) {
     let cursor = currentNode.cursor;
     // Reach Object
-    while (cursor.type.name !== 'Object') {
+    while (cursor.type.name !== 'Object' && cursor.type.name !== 'QtObject') {
       if (!cursor.parent()) return null;
     }
 
@@ -149,11 +149,13 @@ function goToUnitNode(node: SyntaxNode): { type: SVO, node: SyntaxNode } {
       return { type: SVO.None, node: node };
     }
     if (x.type.name === 'Subject') return { type: SVO.Subject, node: x };
+    if (x.type.name === 'QtSubject') return { type: SVO.Subject, node: x };
     if (x.type.name === 'BlankNodePropertyList') {
       return { type: SVO.BlankNodePropertyList, node: x };
     }
     if (x.type.name === 'Verb') return { type: SVO.Verb, node: x };
     if (x.type.name === 'Object') return { type: SVO.Object, node: x };
+    if (x.type.name === 'QtObject') return { type: SVO.Object, node: x };
     if (x.type.name === 'Collection') return { type: SVO.Collection, node: x };
     
     x = x.parent;
@@ -180,7 +182,7 @@ function getSubjectInfo(
 
   let subjectTerm: RDF.Term | typeof AnonymousBlankNode | null;
 
-  if (subjectSyntaxNode.type.name === "Subject") {
+  if (subjectSyntaxNode.type.name === "Subject" || subjectSyntaxNode.type.name == "QtSubject") {
     const subjectRaw = editorState.sliceDoc(subjectSyntaxNode.from, subjectSyntaxNode.to);
     situation.subjectText = subjectRaw;
     subjectTerm = syntaxNodeToTerm(editorState, directives, subjectSyntaxNode);
@@ -216,7 +218,7 @@ function findSubjectSyntaxNode(node: SyntaxNode | null) {
       return node;
     }
 
-    if (node.type.name === "Triples") {
+    if (node.type.name === "Triples" || node.type.name === "QuotedTriple") {
       return node.firstChild;
     }
 
@@ -267,13 +269,13 @@ function extractAllTypes(
       editorState, directives, node.firstChild, destination
     );
 
-    if (node.parent && node.parent.type.name === "Triples") {
+    if (node.parent && (node.parent.type.name === "Triples" || node.parent.type.name === 'QuotedTriple')) {
       extractAllTypesOfVerbAndObjectList(
         editorState, directives, node.nextSibling, destination
       );
     }
 
-  } else if (node.name === 'Subject') {
+  } else if (node.name === 'Subject' || node.name === 'QtSubject') {
     extractAllTypesOfVerbAndObjectList(
       editorState, directives, node.nextSibling, destination
     );
@@ -301,7 +303,7 @@ function extractAllTypesOfVerbAndObjectList(
       } else {
         rdfType = false;
       }
-    } else if (node.name === 'Object') {
+    } else if (node.name === 'Object' || node.name === 'QtObject') {
       if (rdfType) {
         const object = syntaxNodeToTerm(editorState, directives, node);
         if (object !== null && object !== AnonymousBlankNode) {

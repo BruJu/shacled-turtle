@@ -17,20 +17,20 @@ Triples {                                                                       
 predicateObjectList { Verb objectList (';' (Verb objectList)?)* }               // [7] predicateObjectList ::= verb objectList (';' (verb objectList)?)*
 objectList { Object (',' Object)* }                                             // [8] objectList ::= object (',' object)*
 Verb { predicate | 'a' }                                                        // [9]  verb         ::= predicate | 'a'
-Subject { iri | blanknode_rule | Collection }                                   // [10] subject      ::= iri | BlankNode | collection
+Subject { iri | blanknode_rule | Collection | QuotedTriple }                    // [10] subject      ::= iri | BlankNode | collection
 predicate { iri }                                                               // [11] predicate    ::= iri
-Object { iri | blanknode_rule | Collection | literal | BlankNodePropertyList }  // [12] object       ::= iri | BlankNode | collection | blankNodePropertyList | literal
+Object { iri | blanknode_rule | Collection | literal | BlankNodePropertyList    // [12] object       ::= iri | BlankNode | collection | blankNodePropertyList | literal
+  | QuotedTriple }
 literal { RDFLiteral | NumericLiteral | BooleanLiteral }                        // [13] literal  ::= RDFLiteral | NumericLiteral | BooleanLiteral
 BlankNodePropertyList { '[' predicateObjectList ']' }                           // [14] BlankNodePropertyList 	::= 	'[' predicateObjectList ']'
 Collection { '(' Object * ')' }                                                 // [15] collection ::= '(' object* ')'
 RDFLiteral { string (langtag | '^^' iri )? }                                    // [128s] 	RDFLiteral 	::= 	String (LANGTAG | '^^' iri)?
 NumericLiteral { integer | decimal | double }                                   // [16]     NumericLiteral  ::=   INTEGER | DECIMAL | DOUBLE
 BooleanLiteral { 'true' | 'false' }                                             // [133s]   BooleanLiteral 	::= 	'true' | 'false'
-
-
-
-
-
+QuotedTriple { '<<' QtSubject Verb QtObject '>>' }                              // [27t] 	quotedTriple 	::= 	'<<' qtSubject verb qtObject '>>'
+QtSubject { iri | BlankNode | QuotedTriple }                                    // [28t] 	qtSubject 	::= 	iri | BlankNode | quotedTriple
+QtObject { iri | BlankNode | literal | QuotedTriple }                           // [29t] 	qtObject 	::= 	iri | BlankNode | literal | quotedTriple
+// [30t] 	annotation 	::= 	'{|' predicateObjectList '|}'
 
 
 Literal { string_literal_quote }

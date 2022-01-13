@@ -3,7 +3,7 @@ import { SyntaxNode } from '@lezer/common';
 import * as RDF from '@rdfjs/types';
 import { DataFactory } from "n3";
 import { stringToTerm } from 'rdf-string';
-import { ns } from "../PRECNamespace";
+import { $quad, ns } from "../PRECNamespace";
 import { TurtleDirectives } from './autocompletion-solving';
 
 export const AnonymousBlankNode: 1 = 1;
@@ -24,9 +24,9 @@ export function syntaxNodeToTerm(
   directives: TurtleDirectives,
   syntaxNode: SyntaxNode
 ): RDF.Term | typeof AnonymousBlankNode | null {
-  if (syntaxNode.name !== 'Subject'
+  if (syntaxNode.name !== 'Subject' && syntaxNode.name !== 'QtSubject'
     && syntaxNode.name !== 'Verb'
-    && syntaxNode.name !== 'Object'
+    && syntaxNode.name !== 'Object' && syntaxNode.name !== 'QtObject'
     && syntaxNode.name !== 'BlankNodePropertyList') {
     throw Error("syntaxNodeToTerm can only be used on Subject, Verb and Object, but was called on a " + syntaxNode.name);
   }
@@ -44,6 +44,31 @@ export function syntaxNodeToTerm(
   
   if (child.name === 'Anon') return AnonymousBlankNode;
   if (child.name === 'Collection') return AnonymousBlankNode;
+
+  if (child.name === 'QuotedTriple') {
+    let quotedSyntaxNodes = [
+      child.getChild('QtSubject'),
+      child.getChild('Verb'),
+      child.getChild('QtObject')
+    ];
+    
+    if (quotedSyntaxNodes.includes(null)) return null;
+
+    let quotedTerms = [
+      syntaxNodeToTerm(editorState, directives, quotedSyntaxNodes[0]!),
+      syntaxNodeToTerm(editorState, directives, quotedSyntaxNodes[1]!),
+      syntaxNodeToTerm(editorState, directives, quotedSyntaxNodes[2]!),
+    ];
+
+    if (quotedTerms.includes(null)) return null;
+    if (quotedTerms.includes(AnonymousBlankNode)) return null;
+
+    return $quad(
+      quotedTerms[0] as RDF.Quad_Subject,
+      quotedTerms[1] as RDF.Quad_Predicate,
+      quotedTerms[2] as RDF.Quad_Object,
+    );
+  }
 
   if (child.name === 'PrefixedName') {
     return prefixedNameSyntaxNodeToTerm(editorState, directives, child);
