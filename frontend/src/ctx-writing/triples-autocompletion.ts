@@ -214,6 +214,11 @@ function getSubjectInfo(
 
 function findSubjectSyntaxNode(node: SyntaxNode | null) {
   while (node !== null) {
+    if (node.type.name === 'Annotation') {
+      // Autocompletion inside annotations is not supported
+      return null;
+    }
+
     if (node.type.name === 'BlankNodePropertyList') {
       return node;
     }
@@ -310,6 +315,9 @@ function extractAllTypesOfVerbAndObjectList(
           destination.types.add(object);
         }
       }
+    } else if (node.name === 'Annotation') {
+      // skip because it concerns another triple. Currently no autocompletion
+      // is supported in annotations
     }
 
     node = node.nextSibling;

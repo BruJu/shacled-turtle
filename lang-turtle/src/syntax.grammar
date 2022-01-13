@@ -15,7 +15,7 @@ Triples {                                                                       
   | BlankNodePropertyList predicateObjectList?
 }
 predicateObjectList { Verb objectList (';' (Verb objectList)?)* }               // [7] predicateObjectList ::= verb objectList (';' (verb objectList)?)*
-objectList { Object (',' Object)* }                                             // [8] objectList ::= object (',' object)*
+objectList { Object Annotation? (',' Object Annotation?)* }                     // [8] objectList ::= object (',' object)*
 Verb { predicate | 'a' }                                                        // [9]  verb         ::= predicate | 'a'
 Subject { iri | blanknode_rule | Collection | QuotedTriple }                    // [10] subject      ::= iri | BlankNode | collection
 predicate { iri }                                                               // [11] predicate    ::= iri
@@ -30,7 +30,7 @@ BooleanLiteral { 'true' | 'false' }                                             
 QuotedTriple { '<<' QtSubject Verb QtObject '>>' }                              // [27t] 	quotedTriple 	::= 	'<<' qtSubject verb qtObject '>>'
 QtSubject { iri | BlankNode | QuotedTriple }                                    // [28t] 	qtSubject 	::= 	iri | BlankNode | quotedTriple
 QtObject { iri | BlankNode | literal | QuotedTriple }                           // [29t] 	qtObject 	::= 	iri | BlankNode | literal | quotedTriple
-// [30t] 	annotation 	::= 	'{|' predicateObjectList '|}'
+Annotation { '{|' predicateObjectList '|}' | '@{' predicateObjectList '}' }     // [30t] 	annotation 	::= 	'{|' predicateObjectList '|}'
 
 
 Literal { string_literal_quote }

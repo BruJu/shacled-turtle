@@ -30,3 +30,41 @@ TurtleDoc(
 )
 
 
+# Double nested triples
+
+<< << <hello> <the> <world> >> <is> <nested> >> <say> <hello> .
+
+==>
+TurtleDoc(
+  Triples(
+    Subject(
+      QuotedTriple(
+        QtSubject(
+          QuotedTriple(QtSubject(IRIREF), Verb(IRIREF), QtObject(IRIREF))
+        ),
+        Verb(IRIREF),
+        QtObject(IRIREF)
+      )
+    ),
+    Verb(IRIREF),
+    Object(IRIREF)
+  )
+)
+
+# Annotation
+
+<tintin> rdf:type <reporter> {| <sourced_by> <wikipedia> |} .
+
+==>
+TurtleDoc(
+  Triples(
+    Subject(IRIREF),
+    Verb(PrefixedName(PN_PREFIX, PN_LOCAL)),
+    Object(IRIREF),
+    Annotation(
+      Verb(IRIREF),
+      Object(IRIREF)
+    )
+  )
+)
+
