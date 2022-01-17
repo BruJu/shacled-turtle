@@ -52,8 +52,9 @@ string { string_literal_quote }
   @precedence { 'a', base_token, prefix_token, 'true', 'false', PN_PREFIX, integer, decimal, double }
 
   IRIREF { '<' (![\u{00}-\u{20}<>"{}|^`\\] /* | UCHAR */ )* '>' }               // [18] 	IRIREF 	::= 	'<' ([^#x00-#x20<>"{}|^`\] | UCHAR)* '>'
-
-  BlankNode { '_:' $[a-zA-Z0-9]+ }                                              // [141s] 	BLANK_NODE_LABEL 	::= 	'_:' (PN_CHARS_U | [0-9]) ((PN_CHARS | '.')* PN_CHARS)?
+  pname_ns { PN_PREFIX? ':' }                                                   // [139s] 	PNAME_NS 	::= 	PN_PREFIX? ':'
+  pname_ln { pname_ns PN_LOCAL }                                                // [140s] 	PNAME_LN 	::= 	PNAME_NS PN_LOCAL
+  BlankNode { '_:' (pn_chars_u | $[0-9]) ((pn_chars | '.')* pn_chars)? }        // [141s] 	BLANK_NODE_LABEL 	::= 	'_:' (PN_CHARS_U | [0-9]) ((PN_CHARS | '.')* PN_CHARS)?
   langtag { '@' $[a-zA-Z]+ ( '-' $[a-zA-Z0-9]+ )* }                             // [144s]   LANGTAG  ::= '@' [a-zA-Z]+ ('-' [a-zA-Z0-9]+)*
   integer { $[+-]? $[0-9]+ }                                                    // [19]     INTEGER  ::=  [+-]? [0-9]+
   decimal { $[+-]? $[0-9]* '.' $[0-9]+ }                                        // [20]     DECIMAL  ::=  [+-]? [0-9]* '.' [0-9]+
@@ -64,6 +65,20 @@ string { string_literal_quote }
   exponent { $[eE] $[+-]? $[0-9]+ }                                             // [154s]  EXPONENT  ::= 	[eE] [+-]? [0-9]+
   string_literal_quote { '"' $[a-zA-Z0-9 _+]* '"' }
 
+
+  
+  pn_chars_base {                                                               // [163s] 	PN_CHARS_BASE
+    $[A-Z] | $[a-z]
+    | $[\u{00C0}-\u{00D6}] | $[\u{00D8}-\u{00F6}] | $[\u{00F8}-\u{02FF}]
+    | $[\u{0370}-\u{037D}] | $[\u{037F}-\u{1FFF}] | $[\u{200C}-\u{200D}]
+    | $[\u{2070}-\u{218F}] | $[\u{2C00}-\u{2FEF}] | $[\u{3001}-\u{D7FF}]
+    | $[\u{F900}-\u{FDCF}] | $[\u{FDF0}-\u{FFFD}] | $[\u{10000}-\u{EFFFF}]
+  }
+  pn_chars_u { pn_chars_base | '_' }                                            // [164s] 	PN_CHARS_U 	::= 	PN_CHARS_BASE | '_'
+  pn_chars {                                                                    // [166s] 	PN_CHARS
+    pn_chars_u | '-' | $[0-9]
+    | '\u{00B7}' | $[\u{0300}-\u{036F}] | $[\u{203F}-\u{2040}]
+  }
 
 
   "."
@@ -77,11 +92,7 @@ string { string_literal_quote }
   PN_PREFIX { $[a-zA-Z] pn_chars_base* }
 
   
-  pn_chars_u { pn_chars_base | '_' }                                            // [164s] 	PN_CHARS_U 	::= 	PN_CHARS_BASE | '_'
-  
 
-
-  pn_chars_base { $[a-zA-Z0-9]+ }
 
   Anon { '[' space? ']' }                                                       // [162s] 	ANON 	::= 	'[' WS* ']'
 

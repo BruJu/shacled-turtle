@@ -153,3 +153,16 @@ TurtleDoc(
     Object(IRIREF)
   )
 )
+
+# Blank nodes
+
+_:www.coucou77 <a> <b> .
+==>
+TurtleDoc(
+  Triples(
+    Subject(BlankNode),
+    Verb(IRIREF),
+    Object(IRIREF)
+  )
+)
+
