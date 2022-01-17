@@ -51,7 +51,7 @@ string { string_literal_quote }
 @tokens {
   @precedence { 'a', base_token, prefix_token, 'true', 'false', PN_PREFIX, integer, decimal, double }
 
-  IRIREF { '<' $[a-zA-Z_\-0-9/+.:#]* '>' }
+  IRIREF { '<' (![\u{00}-\u{20}<>"{}|^`\\] /* | UCHAR */ )* '>' }               // [18] 	IRIREF 	::= 	'<' ([^#x00-#x20<>"{}|^`\] | UCHAR)* '>'
 
   BlankNode { '_:' $[a-zA-Z0-9]+ }                                              // [141s] 	BLANK_NODE_LABEL 	::= 	'_:' (PN_CHARS_U | [0-9]) ((PN_CHARS | '.')* PN_CHARS)?
   langtag { '@' $[a-zA-Z]+ ( '-' $[a-zA-Z0-9]+ )* }                             // [144s]   LANGTAG  ::= '@' [a-zA-Z]+ ('-' [a-zA-Z0-9]+)*

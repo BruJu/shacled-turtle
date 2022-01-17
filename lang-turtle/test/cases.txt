@@ -140,3 +140,16 @@ TurtleDoc(
   Object(PrefixedName(PN_LOCAL))
  )
 )
+
+
+# Special characters
+
+<http://bob/léponge> :knows <http://patrick> .
+==>
+TurtleDoc(
+  Triples(
+    Subject(IRIREF),
+    Verb(PrefixedName(PN_LOCAL)),
+    Object(IRIREF)
+  )
+)
