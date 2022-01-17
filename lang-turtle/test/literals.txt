@@ -33,3 +33,23 @@ TurtleDoc(
   )
 )
 
+# Strings
+
+[] <test>
+  "hello world",
+  'hello world',
+  "I'd like some tea",
+  'I\'m a message',
+  """multi
+  lines are "not impossible"!""" .
+==>
+TurtleDoc(
+  Triples(
+    Subject(Anon), Verb(IRIREF),
+    Object(RDFLiteral),
+    Object(RDFLiteral),
+    Object(RDFLiteral),
+    Object(RDFLiteral),
+    Object(RDFLiteral)
+  )
+)
