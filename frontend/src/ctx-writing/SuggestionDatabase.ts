@@ -4,6 +4,7 @@ import * as RDF from '@rdfjs/types';
 import axios from 'axios';
 import * as n3 from 'n3';
 import { termToString } from 'rdf-string';
+import { Description, OntologyGraph } from './OntologyGraph';
 import { $defaultGraph, $quad, ns } from '../PRECNamespace';
 
 // Term suggestion database that resorts to a SHACL shape graph.
@@ -27,27 +28,29 @@ export type PathDescription = {
   descriptions?: RDF.Literal[];
 };
 
+export type SuggestableType = {
+  class: RDF.Term,
+  info: PathDescription
+};
 
 /** A shape */
-class Shape {
-  /** Name of the rule */
+class ShapeInGraph {
+  /** Name of the shape */
   readonly ruleName: RDF.Term;
   /** List of targets */
-  readonly target: ShapeTargets;
-  /** List of predice paths */
-  readonly directPaths: TermMap<RDF.NamedNode, PathDescription> = new TermMap();
+  readonly target: ShapeTargets = {
+    node: new TermSet(),
+    class: new TermSet(),
+    subjectsOf: new TermSet(),
+    objectsOf: new TermSet()
+  };
 
-  readonly info: PathDescription;
+  readonly superShape = new TermSet();
+
+  readonly description: Description = new Description();
 
   constructor(ruleName: RDF.Term) {
     this.ruleName = ruleName;
-    this.target = {
-      node: new TermSet(),
-      class: new TermSet(),
-      subjectsOf: new TermSet(),
-//      objectsOf: new TermSet()
-    };
-    this.info = {};
   }
 };
 
@@ -74,35 +77,30 @@ export default class SuggestionDatabase {
     return new SuggestionDatabase(new n3.Parser().parse(answer.data));
   }
 
-  /** Mapping of a type to its corresponding terms */
-  readonly _shapes = new TermMap<RDF.Term, Shape>();
+  readonly ontology: OntologyGraph;
+  readonly nodeToFakeTypes: TermMap<RDF.Term, TermSet> = new TermMap();
 
-  readonly _cache: ShapeTargetToShape;
+//  /** Mapping of a type to its corresponding terms */
+//  readonly _shapes = new TermMap<RDF.Term, Shape>();
+//  readonly _cache: ShapeTargetToShape;
+
+  
 
   constructor(triples: RDF.Quad[]) {
-    const store = new n3.Store(triples);
-
-    const r = extractListOfNodeShapes(store);
-    this._shapes = r.shapeNameToShape;
-    this._cache = r.cache;
-
-    let resolvedShapes = new TermSet();
-
-    for (const [ruleName, shape] of this._shapes) {
-      if (!resolvedShapes.has(ruleName)) {
-        resolveShape(store, ruleName, shape, this._shapes, resolvedShapes);
-      }
-    }
+    this.ontology = new OntologyGraph();
+    
+    const store: RDF.DatasetCore = new n3.Store(triples);
+    
+    addRDFS(this.ontology, store);
+    addSHACL(this.ontology, store);
   }
 
   /**
    * Return every type for which we have some information about the predicate it
    * uses
    */
-  getAllTypes() {
-    return [...this._cache.class].map(([term, shapes]) => (
-      { class: term, info: mergeAll(shapes.map(shape => shape.info)) }
-    ));
+  getAllTypes(): SuggestableType[] {
+    return this.ontology.types;
   }
 
   /**
@@ -111,36 +109,11 @@ export default class SuggestionDatabase {
    * @returns All possible predicates
    */
   getAllRelevantPathsOfType(
-    node: RDF.Term | undefined, types: RDF.Term[] | TermSet, subjectOf: RDF.Term[] | TermSet
-  ): TermMap<RDF.Term, PathInfo[]> {
-    let paths = new TermMap<RDF.Term, PathInfo[]>();
-
-    function addPathIn(shapes: Shape[] | undefined, shapeOrigin: ShapeOrigin) {
-      if (shapes === undefined) return;
-
-      for (const shape of shapes) {
-        shape.directPaths.forEach((description, iri) => {
-          let info = paths.get(iri);
-          if (info === undefined) {
-            info = [];
-            paths.set(iri, info);
-          }
-          info.push({ why: shapeOrigin, description: description });
-        });
-      }
-    }
-
-    if (node !== undefined) addPathIn(this._cache.node.get(node), { type: 'node' });
-
-    types.forEach(type =>
-      addPathIn(this._cache.class.get(type), { type: 'type', value: type })
-    );
-
-    subjectOf.forEach(subjectOf => 
-      addPathIn(this._cache.subjectsOf.get(subjectOf), { type: 'subjectOf', value: subjectOf })
-    );
-  
-    return paths;
+    node: RDF.Term | undefined,
+    types: TermSet,
+    subjectOf: TermSet
+  ): TermMap<RDF.Term, Description> {
+    return this.ontology.getAllPredicatesFor({ node, types, subjectOf });
   }
 }
 
@@ -150,43 +123,20 @@ type ShapeTargets = {
   node: TermSet,
   class: TermSet,
   subjectsOf: TermSet,
-//  objectsOf: TermSet // Not yet implemented
-};
-
-type ShapeTargetToShape = {
-  node: TermMap<RDF.Term, Shape[]>,
-  class: TermMap<RDF.Term, Shape[]>,
-  subjectsOf: TermMap<RDF.Term, Shape[]>
+  objectsOf: TermSet
 };
 
 function extractListOfNodeShapes(shapeGraph: RDF.DatasetCore)
-: { shapeNameToShape: TermMap<RDF.Term, Shape>, cache: ShapeTargetToShape } {
-  let result = new TermMap<RDF.Term, Shape>();
-  let cache: ShapeTargetToShape = {
-    node: new TermMap(),
-    class: new TermMap(),
-    subjectsOf: new TermMap()
-  };
+: TermMap<RDF.Term, ShapeInGraph> {
+  let result = new TermMap<RDF.Term, ShapeInGraph>();
 
   const addOrGetShape = (shapeName: RDF.Term) => {
     let r = result.get(shapeName);
     if (r === undefined) {
-      r = new Shape(shapeName);
+      r = new ShapeInGraph(shapeName);
       result.set(shapeName, r);
     }
     return r;
-  };
-
-  const addInCache = (type: keyof ShapeTargetToShape, target: RDF.Term, shape: Shape) => {
-    let col = cache[type].get(target);
-    if (col === undefined) {
-      col = [];
-      cache[type].set(target, col);
-    }
-
-    if (!col.includes(shape)) col.push(shape);
-
-    return col;
   };
 
   // https://www.w3.org/TR/shacl/#shapes
@@ -197,9 +147,9 @@ function extractListOfNodeShapes(shapeGraph: RDF.DatasetCore)
 
     if (shapeGraph.has($quad(quad.subject, ns.rdf.type, ns.rdfs.Class, $defaultGraph))) {
       shape.target.class.add(quad.subject);
-      addInCache('class', quad.subject, shape);
 
-      merge(shape.info, buildPathDescription(shapeGraph, quad.subject));
+      shape.description
+      .addLabelsAndComments(shapeGraph, quad.subject);
     }
   }
 
@@ -209,7 +159,7 @@ function extractListOfNodeShapes(shapeGraph: RDF.DatasetCore)
     { predicate: ns.sh.targetClass, target: 'class' },
     { predicate: ns.sh.targetNode, target: 'node' },
     { predicate: ns.sh.targetSubjectsOf, target: 'subjectsOf' },
-//    { predicate: ns.sh.targetObjectsOf, target: 'objectsOf' }
+    { predicate: ns.sh.targetObjectsOf, target: 'objectsOf' }
   ];
 
   for (const { predicate, target } of targetPredicates) {
@@ -217,12 +167,8 @@ function extractListOfNodeShapes(shapeGraph: RDF.DatasetCore)
       const shape = addOrGetShape(quad.subject);
       shape.target[target].add(quad.object);
 
-      addInCache(target, quad.object, shape);
-
-      if (target === 'class') {
-        const description = buildPathDescription(shapeGraph, quad.subject);
-        merge(shape.info, description);
-      }
+      shape.description
+      .addLabelsAndComments(shapeGraph, quad.subject);
     }
   }
 
@@ -230,83 +176,37 @@ function extractListOfNodeShapes(shapeGraph: RDF.DatasetCore)
   // sh:node, or a member of a SHACL list that is a value of a shape-expecting
   // and list-taking parameter such as sh:or. 
   for (const quad of shapeGraph.match(null, ns.sh.node, null, $defaultGraph)) {
-    addOrGetShape(quad.subject);
+    addOrGetShape(quad.subject).superShape.add(quad.object);
   }
 
-  return { shapeNameToShape: result, cache: cache };
+  return result;
 }
 
-
-
-function resolveShape(
-  store: RDF.DatasetCore,
-  ruleName: RDF.Term, shape: Shape,
-  allShapes: TermMap<RDF.Term, Shape>, resolved: TermSet
-) {
-  resolved.add(ruleName);
-
-  function addPath(iri: RDF.NamedNode, description: PathDescription) {
-    if (!shape.directPaths.has(iri)) {
-      shape.directPaths.set(iri, {});
-    }
-    
-    let obj = shape.directPaths.get(iri)!;
-    merge(obj, description);
-  }
-
-  for (const { object: property } of store.match(ruleName, ns.sh.property, null, $defaultGraph)) {
-    const pathValues = store.match(property, ns.sh.path, null, $defaultGraph);
-    const maxCounts = store.match(property, ns.sh.maxCount, null, $defaultGraph);
-
-    if (maxCounts.has($quad(property as RDF.Quad_Subject, ns.sh.maxCount, n3.DataFactory.literal(0), $defaultGraph))) {
-      continue;
-    }
-
-    for (const pathValueQuad of pathValues) {
-      const object = pathValueQuad.object;
-      if (object.termType !== 'NamedNode') continue;
-
-      const pathDescription = buildPathDescription(store, property);
-
-      addPath(object, pathDescription);
-//        console.log(`Shape ${termToString(shape)} uses the predicate ${termToString(pathValueQuad.object)}`);
-    }
-  }
-
-  for (const childShapeQuad of store.match(ruleName, ns.sh.node, null, $defaultGraph)) {
-    const childShapeName = childShapeQuad.object;
-    const childShape = allShapes.get(childShapeName);
-    if (childShape === undefined) {
-      throw Error(
-        "resolveShape(): " +
-        `${termToString(childShapeName)} is a subshape of ${termToString(ruleName)}`
-        + " but its shape object has not been found"
-      );
-    }
-
-    if (!resolved.has(childShapeName)) {
-      resolveShape(store, childShapeName, childShape, allShapes, resolved);
-    }
-
-    childShape.directPaths.forEach((description, path) => addPath(path, description));
-  }
-}
-
-function buildPathDescription(store: RDF.DatasetCore, focus: RDF.Term): PathDescription {
+function buildPathDescription(store: RDF.DatasetCore, focus: RDF.Term): Description {
+  // TODO: integrate these predicates in Description
   const labels = getLiterals(
     store.match(focus, ns.rdfs.label, null, $defaultGraph),
     store.match(focus, n3.DataFactory.namedNode(ns.sh[''].value + 'name'), null, $defaultGraph)
   );
-  const descriptions = getLiterals(
+  const comments = getLiterals(
     store.match(focus, ns.rdfs.comment, null, $defaultGraph),
     store.match(focus, ns.sh.comment, null, $defaultGraph)
   );
 
-  return { labels, descriptions }
+  const d = new Description();
+
+  for (const label of labels) d.labels.add(label);
+  for (const comment of comments) d.comments.add(comment);
+
+  return d;
 }
 
-function getLiterals(...quadss: Iterable<RDF.Quad>[]): RDF.Literal[] {
-  return [...quadss].flatMap(quads => [...quads].map(quad => quad.object)).filter(isLiteral);
+function getLiterals(...quadss: Iterable<RDF.Quad>[]): TermSet<RDF.Literal> {
+  return new TermSet(
+    [...quadss]
+    .flatMap(quads => [...quads].map(quad => quad.object))
+    .filter(isLiteral)
+  );
 }
 
 function isLiteral(term: RDF.Term): term is RDF.Literal {
@@ -333,4 +233,104 @@ export function mergeAll(paths: PathDescription[]): PathDescription {
   }
 
   return dest;
+}
+
+
+function addRDFS(ontology: OntologyGraph, store: RDF.DatasetCore) {
+  for (const quad of store.match(null, ns.rdfs.domain, null)) {
+    ontology.addRdfsDomain(quad.subject, quad.object);
+  }
+
+  for (const quad of store.match(null, ns.rdfs.range, null)) {
+    ontology.addRdfsRange(quad.subject, quad.object);
+  }
+
+  for (const quad of store.match(null, ns.rdfs.subClassOf, null)) {
+    ontology.addRdfSubClassOf(quad.subject, quad.object);
+  }
+
+  for (const quad of store.match(null, ns.rdf.type, ns.rdfs.Class)) {
+    ontology.addType(quad)
+    .addLabelsAndComments(store, quad.subject);
+  }
+}
+
+class ShapeToFakeType {
+  private readonly map: TermMap<RDF.Term, RDF.Variable> = new TermMap();
+  private next = 1;
+
+  get(shape: RDF.Term): RDF.Variable {
+    let type = this.map.get(shape);
+    if (type !== undefined) return type;
+    type = n3.DataFactory.variable("Shape#" + this.next + "~" + shape.value);
+    ++this.next;
+    this.map.set(shape, type);
+    return type;
+  }
+}
+
+function addSHACL(ontology: OntologyGraph, store: RDF.DatasetCore) {
+  const dict = new ShapeToFakeType();
+
+  const shapeNameToShape = extractListOfNodeShapes(store);
+
+  for (const [ruleName, shape] of shapeNameToShape) {
+    const thisType = dict.get(ruleName);
+    ontology.addType(thisType);
+
+    for (const superShape of shape.superShape) {
+      ontology.addRdfSubClassOf(thisType, dict.get(superShape));
+    }
+
+    for (const cl of shape.target.class) {
+      ontology.addRdfSubClassOf(cl, thisType);
+    }
+
+    for (const predicate of shape.target.subjectsOf) {
+      ontology.addRdfsDomain(predicate, thisType);
+    }
+
+    for (const predicate of shape.target.objectsOf) {
+      ontology.addRdfsRange(predicate, thisType);
+    }
+
+    ontology.addAxiomaticTypes(shape.target.node, thisType);
+
+    resolveShape(ontology, store, ruleName, shape, dict);
+  }
+}
+
+
+
+function resolveShape(
+  ontology: OntologyGraph,
+  store: RDF.DatasetCore,
+  ruleName: RDF.Term, shape: ShapeInGraph,
+  shapesToType: ShapeToFakeType
+) {
+  const shapeType = shapesToType.get(ruleName);
+
+  function addPredicatePath(iri: RDF.NamedNode, description: Description) {
+    ontology.addLink(shapeType, iri, null)
+    .addAll(description);
+  }
+
+  for (const { object: property } of store.match(ruleName, ns.sh.property, null, $defaultGraph)) {
+    const pathValues = store.match(property, ns.sh.path, null, $defaultGraph);
+    const maxCounts = store.match(property, ns.sh.maxCount, null, $defaultGraph);
+
+    if (maxCounts.has($quad(property as RDF.Quad_Subject, ns.sh.maxCount, n3.DataFactory.literal(0), $defaultGraph))) {
+      continue;
+    }
+
+    for (const pathValueQuad of pathValues) {
+      const object = pathValueQuad.object;
+      if (object.termType !== 'NamedNode') continue;
+
+      const pathDescription = buildPathDescription(store, property);
+
+      addPredicatePath(object, pathDescription);
+//        console.log(`Shape ${termToString(shape)} uses the predicate ${termToString(pathValueQuad.object)}`);
+    }
+  }
 }

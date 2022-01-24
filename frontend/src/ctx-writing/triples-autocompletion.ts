@@ -7,9 +7,10 @@ import { Completion, CompletionContext, CompletionResult } from "@codemirror/aut
 import { AnonymousBlankNode, syntaxNodeToTerm } from "./token-to-term";
 import TermSet from "@rdfjs/term-set";
 import { ns } from "../PRECNamespace";
-import SuggestionDatabase, { mergeAll, PathDescription, PathInfo } from "./SuggestionDatabase";
+import SuggestionDatabase, { mergeAll, PathDescription, PathInfo, SuggestableType } from "./SuggestionDatabase";
 import { termToString } from 'rdf-string';
 import { DataFactory } from "n3";
+import { Description } from "./OntologyGraph";
 
 let suggestions: SuggestionDatabase | null = null;
 SuggestionDatabase.load(/* PREC Shacl Graph */).then(db => suggestions = db);
@@ -330,10 +331,13 @@ function termToOption(term: RDF.Term, turtleDeclarations: TurtleDirectives): Com
   return { label: termToCompletionLabel(term, turtleDeclarations) };
 }
 
-function pathToOption([iri, infos]: [RDF.Term, PathInfo[]], turtleDeclarations: TurtleDirectives): Completion {
+function pathToOption([iri, infos]: [RDF.Term, Description], turtleDeclarations: TurtleDirectives): Completion {
   return toOption(
     iri,
-    mergeAll(infos.map(info => info.description)),
+    {
+      labels: [...infos.labels],
+      descriptions: [...infos.comments]
+    },
     turtleDeclarations
   )
 }
@@ -372,7 +376,7 @@ function toOption(
   return res;
 }
 
-function typeToOption(type: { class: RDF.Term, info: PathDescription }, directives: TurtleDirectives) {
+function typeToOption(type: SuggestableType, directives: TurtleDirectives) {
   return toOption(type.class, type.info, directives);
 }
 
