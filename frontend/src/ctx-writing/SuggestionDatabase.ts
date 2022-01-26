@@ -4,8 +4,10 @@ import * as RDF from '@rdfjs/types';
 import axios from 'axios';
 import * as n3 from 'n3';
 import { termToString } from 'rdf-string';
-import { Description, OntologyGraph } from './OntologyGraph';
 import { $defaultGraph, $quad, ns } from '../PRECNamespace';
+import Description from './ontology/Description';
+import RDFAutomata, { RDFAutomataBuilder } from './ontology/RDFAutomata';
+import AutomataStateInitializer from './ontology/AutomataStateInitializer';
 
 // Term suggestion database that resorts to a SHACL shape graph.
 
@@ -14,6 +16,10 @@ import { $defaultGraph, $quad, ns } from '../PRECNamespace';
 //
 // Here, we use the shape graph to power up an autocompletion engine ?
 
+
+const $variable = n3.DataFactory.variable;
+const $any = $variable("-any");
+const $all = $variable("-all"); // TODO: replace $all with $unknown
 
 /** The PREC validation shape graph */
 export const PREC_SHAPE_GRAPH_LINK = "https://raw.githubusercontent.com/BruJu/PREC/ContextShape/data/PRECContextShape.ttl";
@@ -77,22 +83,28 @@ export default class SuggestionDatabase {
     return new SuggestionDatabase(new n3.Parser().parse(answer.data));
   }
 
-  readonly ontology: OntologyGraph;
-  readonly nodeToFakeTypes: TermMap<RDF.Term, TermSet> = new TermMap();
-
-//  /** Mapping of a type to its corresponding terms */
-//  readonly _shapes = new TermMap<RDF.Term, Shape>();
-//  readonly _cache: ShapeTargetToShape;
-
-  
+  readonly automata: RDFAutomata<Description>;
+  readonly initialTypes: TermMap<RDF.Term, Description>;
+  readonly initializer: AutomataStateInitializer; 
 
   constructor(triples: RDF.Quad[]) {
-    this.ontology = new OntologyGraph();
-    
     const store: RDF.DatasetCore = new n3.Store(triples);
+
+    const automataBuilder = new RDFAutomataBuilder<Description>(
+      () => new Description()
+    );
+
+    const initializer = new AutomataStateInitializer();
+    const ontologyBuilder = new OntologyBuilder(initializer, automataBuilder);
     
-    addRDFS(this.ontology, store);
-    addSHACL(this.ontology, store);
+    addRDFS(ontologyBuilder, store);
+    addSHACL(ontologyBuilder, store);
+    ontologyBuilder.resolveDescriptionOfNodes(store);
+
+    const r = automataBuilder.build((acc, other) => acc.addAll(other));
+    this.automata = r.automata;
+    this.initialTypes = r.types;
+    this.initializer = initializer;
   }
 
   /**
@@ -100,7 +112,14 @@ export default class SuggestionDatabase {
    * uses
    */
   getAllTypes(): SuggestableType[] {
-    return this.ontology.types;
+    return [...this.initialTypes]
+    .map(([type, description]) => ({
+      class: type,
+      info: {
+        labels: [...description.labels],
+        descriptions: [...description.comments]
+      }
+    }));
   }
 
   /**
@@ -113,7 +132,13 @@ export default class SuggestionDatabase {
     types: TermSet,
     subjectOf: TermSet
   ): TermMap<RDF.Term, Description> {
-    return this.ontology.getAllPredicatesFor({ node, types, subjectOf });
+    const state = this.initializer.getInitialState({ node, types, subjectOf });
+    
+    state.add($all);
+    console.log([...state].map(t => termToString(t)).join(" ; "));
+    this.automata.trimState(state);
+    console.log([...state].map(t => termToString(t)).join(" ; "));
+    return this.automata.getPossiblePaths(state);
   }
 }
 
@@ -235,23 +260,72 @@ export function mergeAll(paths: PathDescription[]): PathDescription {
   return dest;
 }
 
+class OntologyBuilder {
+  readonly initializer: AutomataStateInitializer;
+  readonly builder: RDFAutomataBuilder<Description>;
 
-function addRDFS(ontology: OntologyGraph, store: RDF.DatasetCore) {
+  constructor(
+    initializer: AutomataStateInitializer,
+    builder: RDFAutomataBuilder<Description>
+  ) {
+    this.initializer = initializer;
+    this.builder = builder;
+  }
+
+  rdfsDomain(iri: RDF.Term, type: RDF.Term) {
+    this.initializer.addSubjectsOf(iri, type);
+    this.builder.addTransition(type, $all, iri);
+  }
+
+  rdfsRange(iri: RDF.Term, type: RDF.Term) {
+    this.initializer.addObjectsOf(iri, type);
+    this.builder.addTransition($all, type, iri);
+  }
+
+  subClassOf(subClass: RDF.Term, superClass: RDF.Term) {
+    this.builder.addTransition(subClass, superClass, null);
+  }
+
+  type(type: RDF.Term) {
+    return this.builder.addState(type);
+  }
+
+  axiomTypes(nodes: TermSet<RDF.Term>, type: RDF.Term) {
+    nodes.forEach(node => this.initializer.addAxiom(node, type));
+  }
+
+  path(shapeType: RDF.Term, property: RDF.Term) {
+    return this.builder.addTransition(shapeType, $all, property);
+  }
+
+  resolveDescriptionOfNodes(store: RDF.DatasetCore<RDF.Quad, RDF.Quad>) {
+    for (const [type, meta] of this.builder.states) {
+      if (!meta.isSuggestible) continue;
+      meta.metaData.addLabelsAndComments(store, type as RDF.Quad_Subject);
+    }
+  }
+};
+
+
+function addRDFS(ontoBuilder: OntologyBuilder, store: RDF.DatasetCore) {
   for (const quad of store.match(null, ns.rdfs.domain, null)) {
-    ontology.addRdfsDomain(quad.subject, quad.object);
+    // TODO: consider subPropertyOf*/domain
+    ontoBuilder.rdfsDomain(quad.subject, quad.object);
+    ontoBuilder.type(quad.object).isSuggestible = true;
   }
 
   for (const quad of store.match(null, ns.rdfs.range, null)) {
-    ontology.addRdfsRange(quad.subject, quad.object);
+    // TODO: consider subPropertyOf*/range
+    ontoBuilder.rdfsRange(quad.subject, quad.object);
+    ontoBuilder.type(quad.object).isSuggestible = true;
   }
 
   for (const quad of store.match(null, ns.rdfs.subClassOf, null)) {
-    ontology.addRdfSubClassOf(quad.subject, quad.object);
+    ontoBuilder.subClassOf(quad.subject, quad.object);
   }
 
   for (const quad of store.match(null, ns.rdf.type, ns.rdfs.Class)) {
-    ontology.addType(quad)
-    .addLabelsAndComments(store, quad.subject);
+    ontoBuilder.type(quad.subject).isSuggestible = true;
   }
 }
 
@@ -269,51 +343,48 @@ class ShapeToFakeType {
   }
 }
 
-function addSHACL(ontology: OntologyGraph, store: RDF.DatasetCore) {
+function addSHACL(ontoBuilder: OntologyBuilder, store: RDF.DatasetCore) {
   const dict = new ShapeToFakeType();
 
   const shapeNameToShape = extractListOfNodeShapes(store);
 
   for (const [ruleName, shape] of shapeNameToShape) {
     const thisType = dict.get(ruleName);
-    ontology.addType(thisType);
+
+    ontoBuilder.type(thisType);
 
     for (const superShape of shape.superShape) {
-      ontology.addRdfSubClassOf(thisType, dict.get(superShape));
+      ontoBuilder.subClassOf(thisType, dict.get(superShape));
     }
 
     for (const cl of shape.target.class) {
-      ontology.addRdfSubClassOf(cl, thisType);
+      ontoBuilder.subClassOf(cl, thisType);
+      ontoBuilder.type(cl).isSuggestible = true;
     }
 
     for (const predicate of shape.target.subjectsOf) {
-      ontology.addRdfsDomain(predicate, thisType);
+      ontoBuilder.rdfsDomain(predicate, thisType);
     }
 
     for (const predicate of shape.target.objectsOf) {
-      ontology.addRdfsRange(predicate, thisType);
+      ontoBuilder.rdfsRange(predicate, thisType);
     }
 
-    ontology.addAxiomaticTypes(shape.target.node, thisType);
+    ontoBuilder.axiomTypes(shape.target.node, thisType);
 
-    resolveShape(ontology, store, ruleName, shape, dict);
+    resolveShape(ontoBuilder, store, ruleName, shape, dict);
   }
 }
 
 
 
 function resolveShape(
-  ontology: OntologyGraph,
+  ontoBuilder: OntologyBuilder,
   store: RDF.DatasetCore,
   ruleName: RDF.Term, shape: ShapeInGraph,
   shapesToType: ShapeToFakeType
 ) {
   const shapeType = shapesToType.get(ruleName);
-
-  function addPredicatePath(iri: RDF.NamedNode, description: Description) {
-    ontology.addLink(shapeType, iri, null)
-    .addAll(description);
-  }
 
   for (const { object: property } of store.match(ruleName, ns.sh.property, null, $defaultGraph)) {
     const pathValues = store.match(property, ns.sh.path, null, $defaultGraph);
@@ -329,7 +400,9 @@ function resolveShape(
 
       const pathDescription = buildPathDescription(store, property);
 
-      addPredicatePath(object, pathDescription);
+      ontoBuilder.path(shapeType, object)
+      .addAll(pathDescription);
+
 //        console.log(`Shape ${termToString(shape)} uses the predicate ${termToString(pathValueQuad.object)}`);
     }
   }

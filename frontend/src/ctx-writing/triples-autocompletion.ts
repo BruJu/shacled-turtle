@@ -10,7 +10,7 @@ import { ns } from "../PRECNamespace";
 import SuggestionDatabase, { mergeAll, PathDescription, PathInfo, SuggestableType } from "./SuggestionDatabase";
 import { termToString } from 'rdf-string';
 import { DataFactory } from "n3";
-import { Description } from "./OntologyGraph";
+import Description from "./ontology/Description";
 
 let suggestions: SuggestionDatabase | null = null;
 SuggestionDatabase.load(/* PREC Shacl Graph */).then(db => suggestions = db);
