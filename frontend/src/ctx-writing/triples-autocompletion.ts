@@ -7,7 +7,7 @@ import { Completion, CompletionContext, CompletionResult } from "@codemirror/aut
 import { AnonymousBlankNode, syntaxNodeToTerm } from "./token-to-term";
 import TermSet from "@rdfjs/term-set";
 import { ns } from "../PRECNamespace";
-import SuggestionDatabase, { mergeAll, PathDescription, PathInfo, SuggestableType } from "./SuggestionDatabase";
+import SuggestionDatabase, { PathDescription, PathInfo, SuggestableType } from "./SuggestionDatabase";
 import { termToString } from 'rdf-string';
 import { DataFactory } from "n3";
 import Description from "./ontology/Description";
