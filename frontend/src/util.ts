@@ -19,3 +19,21 @@ export function getWithDefaultInTermMultiMap(
   map.set(key, set);
   return set;
 }
+
+export function getWithDefault<V>(
+  map: TermMap<RDF.Term, V>, key: RDF.Term,
+  initializer: () => V
+) {
+  let elem = map.get(key);
+  if (elem !== undefined) return elem;
+
+  elem = initializer();
+  map.set(key, elem);
+  return elem;
+}
+
+export function addTermPairInTermMultiMap(
+  map: TermMap<RDF.Term, TermSet>, key: RDF.Term, value: RDF.Term
+) {
+  getWithDefaultInTermMultiMap(map, key).add(value);
+}

@@ -10,7 +10,8 @@ import addRDFS from './OntologyBuilder-rdfs';
 import addSHACL from './OntologyBuilder-shacl';
 
 const $variable = n3.DataFactory.variable;
-const $all = $variable("-all"); // TODO: replace $all with $unknown
+/* Object of paths for which we don't know anything about the type */
+const $all = $variable("-all");
 
 
 export default class OntologyBuilder {
@@ -29,12 +30,10 @@ export default class OntologyBuilder {
 
   rdfsDomain(iri: RDF.Term, type: RDF.Term) {
     this.initializer.addSubjectsOf(iri, type);
-    this.builder.addTransition(type, $all, iri);
   }
 
   rdfsRange(iri: RDF.Term, type: RDF.Term) {
     this.initializer.addObjectsOf(iri, type);
-    this.builder.addTransition($all, type, iri);
   }
 
   subClassOf(subClass: RDF.Term, superClass: RDF.Term) {
@@ -49,8 +48,8 @@ export default class OntologyBuilder {
     nodes.forEach(node => this.initializer.addAxiom(node, type));
   }
 
-  path(shapeType: RDF.Term, property: RDF.Term) {
-    return this.builder.addTransition(shapeType, $all, property);
+  path(shapeType: RDF.Term, property: RDF.Term, range: RDF.Term = $all) {
+    return this.builder.addTransition(shapeType, range, property);
   }
 
   private resolveDescriptionOfNodes(store: RDF.DatasetCore<RDF.Quad, RDF.Quad>) {
