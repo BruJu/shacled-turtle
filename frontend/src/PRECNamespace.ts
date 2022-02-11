@@ -20,6 +20,8 @@ export const $defaultGraph = n3.DataFactory.defaultGraph();
 
 export const $quad = n3.DataFactory.quad;
 
+export const $variable = n3.DataFactory.variable;
+
 /**
  * Types related to PG description in RDF. Generally not that interesting to
  * represent and contributes to "graph bloat".
