@@ -1,6 +1,6 @@
 import * as RDF from "@rdfjs/types";
 import TermSet from "@rdfjs/term-set";
-import { ns } from "../../PRECNamespace";
+import { ns } from "../PRECNamespace";
 
 export default class Description {
   labels: TermSet<RDF.Literal> = new TermSet();
@@ -28,5 +28,12 @@ export default class Description {
   addAll(description: Description) {
     description.labels.forEach(l => this.labels.add(l));
     description.comments.forEach(l => this.comments.add(l));
+  }
+
+  static fromShacl(store: RDF.DatasetCore, target: RDF.NamedNode) {
+    const self = new Description();
+    Description.insertInto(store, target, ns.sh.apply('name'), self.labels);
+    Description.insertInto(store, target, ns.sh.comment, self.comments);
+    return this;
   }
 }

@@ -1,9 +1,9 @@
 import * as RDF from "@rdfjs/types";
 import TermSet from "@rdfjs/term-set";
 import TermMap from "@rdfjs/term-map";
-import { ns } from "../../PRECNamespace";
+import { ns } from "../PRECNamespace";
 import { DataFactory } from "n3";
-import { addInTermMultiMap, addTermPairInTermMultiMap } from "../../util";
+import { addInTermMultiMap, addTermPairInTermMultiMap } from "../util";
 
 
 export default function buildPath(

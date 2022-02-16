@@ -3,10 +3,10 @@ import TermSet from '@rdfjs/term-set';
 import * as RDF from '@rdfjs/types';
 import axios from 'axios';
 import * as n3 from 'n3';
-import Description from './ontology/Description';
-import RDFAutomata from './ontology/RDFAutomata';
-import AutomataStateInitializer from './ontology/AutomataStateInitializer';
-import OntologyBuilder from './ontology/OntologyBuilder';
+import Description from '../ontology/Description';
+import MetaDataState from '../ontology/MetaDataState';
+import OntologyBuilder, { Ontology } from '../ontology/OntologyBuilder';
+import { Suggestion } from '../ontology/Suggestible';
 
 // Term suggestion database that resorts to a SHACL shape graph.
 
@@ -34,8 +34,8 @@ export type PathDescription = {
 };
 
 export type SuggestableType = {
-  class: RDF.Term,
-  info: PathDescription
+  term: RDF.Term,
+  description: Description
 };
 
 
@@ -62,9 +62,7 @@ export default class SuggestionDatabase {
     return new SuggestionDatabase(new n3.Parser().parse(answer.data));
   }
 
-  readonly automata: RDFAutomata<Description>;
-  readonly initialTypes: TermMap<RDF.Term, Description>;
-  readonly initializer: AutomataStateInitializer; 
+  readonly ontology: Ontology;
 
   constructor(triples: RDF.Quad[]) {
     const store: RDF.DatasetCore = new n3.Store(triples);
@@ -72,26 +70,15 @@ export default class SuggestionDatabase {
     const builder = new OntologyBuilder();
     builder.addRDFS(store);
     builder.addSHACL(store);
-
-    const r = builder.build(store);
-    this.automata = r.automata;
-    this.initialTypes = r.types;
-    this.initializer = r.initializer;
+    this.ontology = builder.build();
   }
 
   /**
    * Return every type for which we have some information about the predicate it
    * uses
    */
-  getAllTypes(): SuggestableType[] {
-    return [...this.initialTypes]
-    .map(([type, description]) => ({
-      class: type,
-      info: {
-        labels: [...description.labels],
-        descriptions: [...description.comments]
-      }
-    }));
+  getAllTypes(): Suggestion[] {
+    return this.ontology.suggestible.getTypes();
   }
 
   /**
@@ -100,15 +87,21 @@ export default class SuggestionDatabase {
    * @returns All possible predicates
    */
   getAllRelevantPathsOfType(
-    node: RDF.Term | undefined,
-    types: TermSet,
-    subjectOf: TermSet
-  ): TermMap<RDF.Term, Description> {
-    const state = this.initializer.getInitialState({ node, types, subjectOf });
+    currentSubject: RDF.Term,
+    // currentPredicate: RDF.Term | undefined,
+    allTriples: RDF.Quad[]
+  ): Suggestion[] {
+    const state = new MetaDataState();
+
+    const store = new n3.Store(allTriples);
+    allTriples.forEach(triple => {
+      this.ontology.ruleset.onNewTriple(triple, store, state)
+    });
     
-    state.add($all);
-    this.automata.trimState(state);
-    return this.automata.getPossiblePaths(state);
+    return this.ontology.suggestible.getAllPathsFor(
+      state.types.getAll(currentSubject),
+      state.shapes.getAll(currentSubject)
+    );
   }
 }
 

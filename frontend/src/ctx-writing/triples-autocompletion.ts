@@ -6,11 +6,12 @@ import * as RDF from '@rdfjs/types';
 import { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { AnonymousBlankNode, syntaxNodeToTerm } from "./token-to-term";
 import TermSet from "@rdfjs/term-set";
-import { ns } from "../PRECNamespace";
+import { $quad, ns } from "../PRECNamespace";
 import SuggestionDatabase, { PathDescription, PathInfo, SuggestableType } from "./SuggestionDatabase";
 import { termToString } from 'rdf-string';
 import { DataFactory } from "n3";
-import Description from "./ontology/Description";
+import Description from "../ontology/Description";
+import { Suggestion } from "../ontology/Suggestible";
 
 let suggestions: SuggestionDatabase | null = null;
 SuggestionDatabase.load(/* PREC Shacl Graph */).then(db => suggestions = db);
@@ -60,9 +61,17 @@ export function tripleAutocompletion(
   const currentSVO = subject.currentSVO;
 
   if (currentSVO === SVO.Verb) {
-    const subjectReq = subject.term === AnonymousBlankNode ? undefined : subject.term;
+    let selfNode: RDF.Quad_Subject;
+    if (subject.term === AnonymousBlankNode) {
+      selfNode = DataFactory.literal("self") as RDF.Term as RDF.Quad_Subject;
+    } else {
+      selfNode = subject.term as RDF.Quad_Subject;
+    }
+
+    const triples = forgeTriples(selfNode, subject.analysis);
+
     const possiblePredicates = suggestions.getAllRelevantPathsOfType(
-      subjectReq, subject.analysis.types, subject.analysis.subjectOf
+      selfNode, triples
     );
 
     options = [
@@ -105,6 +114,22 @@ export function tripleAutocompletion(
   }
  
   return { from: word.from, options, filter: false };
+}
+
+function forgeTriples(subject: RDF.Quad_Subject, analysis: CurrentNodeAnalysis) {
+  let i = 0;
+
+  let result: RDF.Quad[] = [];
+
+  analysis.types.forEach(type => {
+    result.push($quad(subject, ns.rdf.type, type as RDF.Quad_Object));
+  });
+
+  analysis.subjectOf.forEach(predicate => {
+    result.push($quad(subject, predicate as RDF.Quad_Predicate, DataFactory.literal(++i)))
+  });
+
+  return result;
 }
 
 
@@ -331,34 +356,26 @@ function termToOption(term: RDF.Term, turtleDeclarations: TurtleDirectives): Com
   return { label: termToCompletionLabel(term, turtleDeclarations) };
 }
 
-function pathToOption([iri, infos]: [RDF.Term, Description], turtleDeclarations: TurtleDirectives): Completion {
+function pathToOption(suggestion: Suggestion, turtleDeclarations: TurtleDirectives): Completion {
   return toOption(
-    iri,
-    {
-      labels: [...infos.labels],
-      descriptions: [...infos.comments]
-    },
+    suggestion.term,
+    suggestion.description,
     turtleDeclarations
   )
 }
 
 function toOption(
   iri: RDF.Term,
-  description: PathDescription,
+  description: Description,
   turtleDeclarations: TurtleDirectives
 ): Completion {
   let res: Completion = { label: termToCompletionLabel(iri, turtleDeclarations) };
 
-  function getStrings(type: 'labels' | 'descriptions') {
+  function getStrings(type: 'labels' | 'comments') {
     const field = description[type];
     if (field === undefined) return undefined;
-
-    const labels = new TermSet<RDF.Literal>(
-      field //.filter(literal => literal.datatype.equals(ns.xsd.string))
-    );
-
-    if (labels.size === 0) return undefined;
-    return [...labels].map(literal => literal.value);
+    if (field.size === 0) return undefined;
+    return [...field].map(literal => literal.value);
   }
 
   
@@ -370,14 +387,14 @@ function toOption(
     res.apply = oldLabel;
   }
 
-  const descriptions = getStrings('descriptions');
+  const descriptions = getStrings('comments');
   if (descriptions) res.info = descriptions.join("<br>");
 
   return res;
 }
 
 function typeToOption(type: SuggestableType, directives: TurtleDirectives) {
-  return toOption(type.class, type.info, directives);
+  return toOption(type.term, type.description, directives);
 }
 
 function termToCompletionLabel(term: RDF.Term, directives: TurtleDirectives): string {

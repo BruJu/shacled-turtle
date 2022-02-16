@@ -1,41 +1,44 @@
 import * as RDF from '@rdfjs/types'
 import OntologyBuilder from './OntologyBuilder';
-import { ns, $quad, $defaultGraph } from '../../PRECNamespace';
+import { ns, $quad, $defaultGraph } from '../PRECNamespace';
 import * as n3 from 'n3';
 import TermMap from '@rdfjs/term-map';
 import TermSet from '@rdfjs/term-set';
 import Description from './Description';
 
-export default function addSHACL(ontoBuilder: OntologyBuilder, store: RDF.DatasetCore) {
-  const dict = new ShapeToFakeType();
-
+export default function addSHACL(builder: OntologyBuilder, store: RDF.DatasetCore) {
   const shapeNameToShape = extractListOfNodeShapes(store);
 
-  for (const [ruleName, shape] of shapeNameToShape) {
-    const thisType = dict.get(ruleName);
-
-    ontoBuilder.type(thisType);
-
+  for (const [shapeName, shape] of shapeNameToShape) {
     for (const superShape of shape.superShape) {
-      ontoBuilder.subClassOf(thisType, dict.get(superShape));
+      builder.rulesBuilder.shSubShape(shapeName, superShape)
     }
 
     for (const cl of shape.target.class) {
-      ontoBuilder.subClassOf(cl, thisType);
-      ontoBuilder.type(cl).isSuggestible = true;
+      builder.rulesBuilder.shTargetClass(shapeName, cl);
+
+      builder.suggestibleBuilder.addExistingType(
+        cl, OntologyBuilder.descriptionOf(store, cl)
+      );
     }
 
     for (const predicate of shape.target.subjectsOf) {
-      ontoBuilder.rdfsDomain(predicate, thisType);
+      builder.rulesBuilder.shSubjectsOf(shapeName, predicate);
+
+      builder.suggestibleBuilder.addTypingPredicate(
+        predicate, OntologyBuilder.descriptionOf(store, predicate)
+      );
     }
 
     for (const predicate of shape.target.objectsOf) {
-      ontoBuilder.rdfsRange(predicate, thisType);
+      builder.rulesBuilder.shObjectsOf(shapeName, predicate);
     }
 
-    ontoBuilder.axiomTypes(shape.target.node, thisType);
-
-    resolveShape(ontoBuilder, store, ruleName, shape, dict);
+    shape.target.node.forEach(node =>
+      builder.rulesBuilder.shTargetNode(node, shapeName)  
+    );
+    
+    resolveShape(builder, store, shapeName, shape);
   }
 }
 
@@ -123,29 +126,16 @@ function extractListOfNodeShapes(shapeGraph: RDF.DatasetCore)
   return result;
 }
 
-class ShapeToFakeType {
-  private readonly map: TermMap<RDF.Term, RDF.Variable> = new TermMap();
-  private next = 1;
 
-  get(shape: RDF.Term): RDF.Variable {
-    let type = this.map.get(shape);
-    if (type !== undefined) return type;
-    type = n3.DataFactory.variable("Shape#" + this.next + "~" + shape.value);
-    ++this.next;
-    this.map.set(shape, type);
-    return type;
-  }
-}
 
 function resolveShape(
   ontoBuilder: OntologyBuilder,
   store: RDF.DatasetCore,
-  ruleName: RDF.Term, shape: ShapeInGraph,
-  shapesToType: ShapeToFakeType
+  shapeName: RDF.Term, shape: ShapeInGraph,
 ) {
-  const shapeType = shapesToType.get(ruleName);
 
-  for (const { object: property } of store.match(ruleName, ns.sh.property, null, $defaultGraph)) {
+
+  for (const { object: property } of store.match(shapeName, ns.sh.property, null, $defaultGraph)) {
     const pathValues = store.match(property, ns.sh.path, null, $defaultGraph);
     const maxCounts = store.match(property, ns.sh.maxCount, null, $defaultGraph);
 
@@ -158,11 +148,9 @@ function resolveShape(
       if (object.termType !== 'NamedNode') continue;
 
       const pathDescription = buildPathDescription(store, property);
-
-      ontoBuilder.path(shapeType, object)
-      .addAll(pathDescription);
-
-//        console.log(`Shape ${termToString(shape)} uses the predicate ${termToString(pathValueQuad.object)}`);
+      ontoBuilder.suggestibleBuilder.addShapePath(shapeName, object,
+        pathDescription
+      );
     }
   }
 }
