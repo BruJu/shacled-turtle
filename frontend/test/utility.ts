@@ -1,5 +1,7 @@
 import * as RDF from "@rdfjs/types";
 import * as n3 from "n3";
+import MetaDataState from "../src/ontology/MetaDataState";
+import Ontology from "../src/ontology/OntologyBuilder";
 import { ns } from "../src/PRECNamespace";
 
 export function loadDataset(content: string): RDF.DatasetCore {
@@ -16,3 +18,16 @@ export function loadDataset(content: string): RDF.DatasetCore {
   return new n3.Store(quads);
 }
 
+export function buildAndRunOntology(
+  data: RDF.DatasetCore,
+  ontologyGraph: RDF.DatasetCore
+) {
+  const ontology = Ontology.make(ontologyGraph);
+  const metaData = new MetaDataState(ontology);
+
+  for (const triple of data) {
+    metaData.onNewTriple(triple, data);
+  }
+
+  return { ontology, metaData };
+}

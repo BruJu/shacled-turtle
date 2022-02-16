@@ -5,7 +5,7 @@ import axios from 'axios';
 import * as n3 from 'n3';
 import Description from '../ontology/Description';
 import MetaDataState from '../ontology/MetaDataState';
-import OntologyBuilder, { Ontology } from '../ontology/OntologyBuilder';
+import Ontology from '../ontology/OntologyBuilder';
 import { Suggestion } from '../ontology/Suggestible';
 
 // Term suggestion database that resorts to a SHACL shape graph.
@@ -15,10 +15,7 @@ import { Suggestion } from '../ontology/Suggestible';
 //
 // Here, we use the shape graph to power up an autocompletion engine ?
 
-
 const $variable = n3.DataFactory.variable;
-const $any = $variable("-any");
-const $all = $variable("-all"); // TODO: replace $all with $unknown
 
 /** The PREC validation shape graph */
 export const PREC_SHAPE_GRAPH_LINK = "https://raw.githubusercontent.com/BruJu/PREC/ContextShape/data/PRECContextShape.ttl";
@@ -66,11 +63,7 @@ export default class SuggestionDatabase {
 
   constructor(triples: RDF.Quad[]) {
     const store: RDF.DatasetCore = new n3.Store(triples);
-
-    const builder = new OntologyBuilder();
-    builder.addRDFS(store);
-    builder.addSHACL(store);
-    this.ontology = builder.build();
+    this.ontology = Ontology.make(store);
   }
 
   /**
@@ -91,7 +84,7 @@ export default class SuggestionDatabase {
     // currentPredicate: RDF.Term | undefined,
     allTriples: RDF.Quad[]
   ): Suggestion[] {
-    const state = new MetaDataState();
+    const state = new MetaDataState(this.ontology);
 
     const store = new n3.Store(allTriples);
     allTriples.forEach(triple => {

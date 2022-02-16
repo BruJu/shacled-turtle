@@ -1,9 +1,9 @@
 import * as RDF from '@rdfjs/types'
-import OntologyBuilder from './OntologyBuilder';
+import { OntologyBuilder } from './OntologyBuilder';
 import { $defaultGraph, ns } from '../PRECNamespace';
 import TermMap from '@rdfjs/term-map';
 import TermSet from '@rdfjs/term-set';
-import { addTermPairInTermMultiMap, getWithDefault } from '../util';
+import { addTermPairInTermMultiMap } from '../util';
 import { DatasetCore } from '@rdfjs/types';
 
 export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore) {

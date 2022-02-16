@@ -1,6 +1,6 @@
 import assert from "assert";
 import MetaDataState from "../src/ontology/MetaDataState";
-import OntologyBuilder, { Ontology } from "../src/ontology/OntologyBuilder";
+import Ontology from "../src/ontology/OntologyBuilder";
 import { loadDataset } from "./utility";
 import * as n3 from "n3";
 import { ns, $quad } from "../src/PRECNamespace";
@@ -13,25 +13,20 @@ describe("Ontology", () => {
       ex:parent rdfs:range ex:Parent .
     `);
 
-    const builder = new OntologyBuilder();
-    builder.addRDFS(parentOntology);
-    builder.addSHACL(parentOntology);
-    
-    const ontology = builder.build();
+    const ontology = Ontology.make(parentOntology);
 
     it('should be able to build the ontologty', () => {
       assert.ok(ontology !== null && ontology !== undefined);
     });
 
-    const meta = new MetaDataState();
-    ontology.ruleset.addAxioms(meta);
+    const meta = new MetaDataState(ontology);
 
     const data = new n3.Store();
 
     function addQuad(s: RDF.Quad_Subject, p: RDF.Quad_Predicate, o: RDF.Quad_Object) {
       const quad = $quad(s, p, o);
       data.add(quad);
-      ontology.ruleset.onNewTriple(quad, data, meta);
+      meta.onNewTriple(quad, data);
     }
 
     it('should do nothing when unrelated predicates are added', () => {

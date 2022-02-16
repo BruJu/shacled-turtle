@@ -117,10 +117,14 @@ export default class Ruleset {
 
       const metaHead = tripleBasedRule.metaHead;
       const resourceWithNewMeta = extractFromData(tripleBasedRule.dataBody!, metaHead.target);
+
+      const objectValue = metaHead.value.termType === "Variable"
+        ? extractFromData(tripleBasedRule.dataBody!, metaHead.value)
+        : metaHead.value;
       
-      const unstable = metaBase[metaHead.kind].add(resourceWithNewMeta, metaHead.value);
+      const unstable = metaBase[metaHead.kind].add(resourceWithNewMeta, objectValue);
       if (unstable) {
-        inferredMeta.push({ target: resourceWithNewMeta, kind: metaHead.kind, value: metaHead.value });
+        inferredMeta.push({ target: resourceWithNewMeta, kind: metaHead.kind, value: objectValue });
       }
     }
 

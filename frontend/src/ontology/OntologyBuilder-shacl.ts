@@ -1,5 +1,5 @@
 import * as RDF from '@rdfjs/types'
-import OntologyBuilder from './OntologyBuilder';
+import { OntologyBuilder } from './OntologyBuilder';
 import { ns, $quad, $defaultGraph } from '../PRECNamespace';
 import * as n3 from 'n3';
 import TermMap from '@rdfjs/term-map';
@@ -151,6 +151,10 @@ function resolveShape(
       ontoBuilder.suggestibleBuilder.addShapePath(shapeName, object,
         pathDescription
       );
+
+      for (const { object: node } of store.match(property, ns.sh.node, null, $defaultGraph)) {
+        ontoBuilder.rulesBuilder.shPredicatePath(shapeName, object, node);
+      }
     }
   }
 }

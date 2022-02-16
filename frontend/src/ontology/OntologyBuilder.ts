@@ -7,9 +7,7 @@ import { RulesBuilder } from "./rules";
 import Ruleset from "./Ruleset";
 import Description from "./Description";
 
-
-
-export default class OntologyBuilder {
+export class OntologyBuilder {
   readonly rulesBuilder: RulesBuilder = new RulesBuilder();
   readonly suggestibleBuilder: Suggestible.Builder = new Suggestible.Builder();
 
@@ -28,12 +26,19 @@ export default class OntologyBuilder {
   }
 }
 
-export class Ontology {
+export default class Ontology {
   readonly ruleset: Ruleset;
   readonly suggestible: Suggestible.Database;
 
   constructor(ruleset: Ruleset, suggestible: Suggestible.Database) {
     this.ruleset = ruleset;
     this.suggestible = suggestible;
+  }
+
+  static make(store: RDF.DatasetCore): Ontology {
+    const builder = new OntologyBuilder();
+    builder.addRDFS(store);
+    builder.addSHACL(store);
+    return builder.build();
   }
 }
