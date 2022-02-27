@@ -4,14 +4,16 @@ import { CurrentSituation, TurtleDirectives } from "./autocompletion-solving";
 import namespace from '@rdfjs/namespace';
 import * as RDF from '@rdfjs/types';
 import { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete";
-import { AnonymousBlankNode, syntaxNodeToTerm } from "./token-to-term";
-import TermSet from "@rdfjs/term-set";
 import { $quad, ns } from "../PRECNamespace";
-import SuggestionDatabase, { PathDescription, PathInfo, SuggestableType } from "./SuggestionDatabase";
+import SuggestionDatabase, { SuggestableType } from "./SuggestionDatabase";
 import { termToString } from 'rdf-string';
 import { DataFactory } from "n3";
 import Description from "../ontology/Description";
 import { Suggestion } from "../ontology/Suggestible";
+import DoubleDataset from "./state/DoubleDataset";
+import * as STParser from "./Parser";
+import CurrentTriples from "./state/CurrentState";
+import Ontology from "../ontology/OntologyBuilder";
 
 let suggestions: SuggestionDatabase | null = null;
 SuggestionDatabase.load(/* PREC Shacl Graph */).then(db => suggestions = db);
@@ -26,17 +28,7 @@ export async function changeShaclGraph(url: string): Promise<boolean> {
   }
 }
 
-enum SVO {
-  Subject, Verb, Object,
-  None,
-  BlankNodePropertyList,
-  Collection
-};
-
-type CurrentNodeAnalysis = {
-  types: TermSet;
-  subjectOf: TermSet;
-};
+enum SVO { Subject, Verb, Object };
 
 export function tripleAutocompletion(
   compCtx: CompletionContext,
@@ -44,34 +36,33 @@ export function tripleAutocompletion(
   currentNode: SyntaxNode,
   situation: CurrentSituation
 ): CompletionResult | null {
-  const directives = extractDirectives(compCtx.state, tree.topNode);
-
-  const subject = getSubjectInfo(compCtx.state, directives, tree, currentNode, situation);
-  if (subject === null) return null;
-
   const word = compCtx.matchBefore(/[a-zA-Z"'0-9_+-/<>:\\]*/);
   if (word === null) return null;
 
-  situation.typesOfSubject = [...subject.analysis.types];
-
   if (suggestions === null) return null;
+
+  const { current, directives } = buildDatasetFromScratch(compCtx.state, tree.topNode, suggestions.ontology);
+
+  const localized = localize(compCtx.state, currentNode, directives);
+  if (localized === null) {
+    return null;
+  }
+
+  if (localized.currentSVO === SVO.Subject) return null;
+  situation.subjectText = localized.subjectToken;
+  situation.subjectTerm = localized.currentSubject;
+
+  situation.typesOfSubject = [
+    ...current.meta.types.getAll(localized.currentSubject),
+    ...current.meta.shapes.getAll(localized.currentSubject)
+  ];
 
   let options: Completion[] = [];
 
-  const currentSVO = subject.currentSVO;
-
-  if (currentSVO === SVO.Verb) {
-    let selfNode: RDF.Quad_Subject;
-    if (subject.term === AnonymousBlankNode) {
-      selfNode = DataFactory.literal("self") as RDF.Term as RDF.Quad_Subject;
-    } else {
-      selfNode = subject.term as RDF.Quad_Subject;
-    }
-
-    const triples = forgeTriples(selfNode, subject.analysis);
-
-    const possiblePredicates = suggestions.getAllRelevantPathsOfType(
-      selfNode, triples
+  if (localized.currentSVO === SVO.Verb) {
+    const possiblePredicates = suggestions.ontology.suggestible.getAllPathsFor(
+      current.meta.types.getAll(localized.currentSubject),
+      current.meta.shapes.getAll(localized.currentSubject)
     );
 
     options = [
@@ -83,31 +74,11 @@ export function tripleAutocompletion(
       ...[...possiblePredicates].map(path => pathToOption(path, directives))
     ];
 
-  } else if (currentSVO === SVO.Object) {
-    let cursor = currentNode.cursor;
-    // Reach Object
-    while (cursor.type.name !== 'Object' && cursor.type.name !== 'QtObject') {
-      if (!cursor.parent()) return null;
-    }
-
-    {
-      // Collections are catched on the next while but it is cleaner
-      // to explicit this case
-      const c = cursor.node;
-      if (c.parent && c.parent.type.name === 'Collection') {
-        return null;
-      }
-    }
-    
-    // Go to corresponding verb
-    // @ts-ignore 2367
-    while (cursor.type.name !== 'Verb') {
-      if (!cursor.prevSibling()) return null;
-    }
-    
-    const t = syntaxNodeToTerm(compCtx.state, directives, cursor.node);
-    if (t !== null && t !== AnonymousBlankNode && ns.rdf.type.equals(t)) {
+  } else if (localized.currentSVO === SVO.Object) {
+    if (localized.currentPredicate.equals(ns.rdf.type)) {
       options = suggestions.getAllTypes().map(term => typeToOption(term, directives));
+    } else {
+      return null;
     }
   } else {
     return null;
@@ -116,244 +87,226 @@ export function tripleAutocompletion(
   return { from: word.from, options, filter: false };
 }
 
-function forgeTriples(subject: RDF.Quad_Subject, analysis: CurrentNodeAnalysis) {
-  let i = 0;
+function buildDatasetFromScratch(
+  editorState: EditorState, tree: SyntaxNode, ontology: Ontology
+): { current: CurrentTriples, directives: TurtleDirectives } {
+  const currentTriples = new CurrentTriples(ontology);
+  let directives: TurtleDirectives = { base: null, prefixes: {} };
 
-  let result: RDF.Quad[] = [];
+  let child = tree.firstChild;
 
-  analysis.types.forEach(type => {
-    result.push($quad(subject, ns.rdf.type, type as RDF.Quad_Object));
-  });
+  while (child !== null) {
+    if (child.type.name === "Directive") {
+      readDirective(directives, editorState, child);
+    } else if (child.type.name === "Triples") {
+      const triples = STParser.triples(directives, editorState, child);
+      triples.forEach(triple => currentTriples.add(triple));
+    } else {
+      // unknown type
+    }
 
-  analysis.subjectOf.forEach(predicate => {
-    result.push($quad(subject, predicate as RDF.Quad_Predicate, DataFactory.literal(++i)))
-  });
+    child = child.nextSibling;
+  }
 
-  return result;
+  return { current: currentTriples, directives: directives };
+}
+
+////////////////////////////////////////////////////////////////////////////////
+
+function readDirective(known: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode) {
+  const child = currentNode.firstChild;
+  if (child === null) return;
+
+  const iriRefNode = child.getChild("IRIREF");
+  if (iriRefNode === null) return;
+
+  const iriStr = editorState.sliceDoc(iriRefNode.from, iriRefNode.to);
+  const describedNamespace = namespace(iriStr.slice(1, iriStr.length - 1));
+
+  if (child.name === "Base" || child.name === "SparqlBase") {
+    known.base = describedNamespace;
+  } else if (child.name === "PrefixID" || child.name === "SparqlPrefix") {
+    const prefixNode = child.getChild("PN_PREFIX");
+    const prefix = prefixNode === null ? "" : editorState.sliceDoc(prefixNode.from, prefixNode.to);
+    known.prefixes[prefix] = describedNamespace;
+  }
 }
 
 
 ////////////////////////////////////////////////////////////////////////////////
 
-/**
- * Extract all directives from the Turtle document
- * @param completionCtx The completition context
- * @param tree The root of the syntax tree
- * @returns The list of directives
- */
-function extractDirectives(editorState: EditorState, tree: SyntaxNode): TurtleDirectives {
-  let answer: TurtleDirectives = { base: null, prefixes: {} };
+type LocalizeResult = null
+  | { currentSVO: SVO.Subject }
+  | { currentSVO: SVO.Verb, currentSubject: RDF.Quad_Subject, subjectToken: string } 
+  | { currentSVO: SVO.Object, currentSubject: RDF.Quad_Subject, subjectToken: string, currentPredicate: RDF.Quad_Predicate };
 
-  for (const directive of tree.getChildren("Directive")) {
-    const child = directive.firstChild;
-    if (child === null) continue;
+function localize(
+  editorState: EditorState, currentNode: SyntaxNode | null, directives: TurtleDirectives
+): LocalizeResult {
+  if (currentNode === null) return null;
 
-    const iriRefNode = child.getChild("IRIREF");
-    if (iriRefNode === null) continue;
-    const iriStr = editorState.sliceDoc(iriRefNode.from, iriRefNode.to);
-    const describedNamespace = namespace(iriStr.slice(1, iriStr.length - 1));
+  const firstUnit = goToUnitNode(currentNode);
+  if (firstUnit === null) return null;
 
-    if (child.name === "Base" || child.name === "SparqlBase") {
-      answer.base = describedNamespace;
-    } else if (child.name === "PrefixID" || child.name === "SparqlPrefix") {
-      const prefixNode = child.getChild("PN_PREFIX");
-      const prefix = prefixNode === null ? "" : editorState.sliceDoc(prefixNode.from, prefixNode.to);
-      answer.prefixes[prefix] = describedNamespace;
-    }
-  }
-
-  return answer;
-}
-
-
-////////////////////////////////////////////////////////////////////////////////
-
-function goToUnitNode(node: SyntaxNode): { type: SVO, node: SyntaxNode } {
-  let x: SyntaxNode | null = node;
-  while (true) {
-    if (x === null) {
-      return { type: SVO.None, node: node };
-    }
-    if (x.type.name === 'Subject') return { type: SVO.Subject, node: x };
-    if (x.type.name === 'QtSubject') return { type: SVO.Subject, node: x };
-    if (x.type.name === 'BlankNodePropertyList') {
-      return { type: SVO.BlankNodePropertyList, node: x };
-    }
-    if (x.type.name === 'Verb') return { type: SVO.Verb, node: x };
-    if (x.type.name === 'Object') return { type: SVO.Object, node: x };
-    if (x.type.name === 'QtObject') return { type: SVO.Object, node: x };
-    if (x.type.name === 'Collection') return { type: SVO.Collection, node: x };
-    
-    x = x.parent;
-  }
-}
-
-function getSubjectInfo(
-  editorState: EditorState,
-  directives: TurtleDirectives,
-  tree: Tree,
-  currentNode: SyntaxNode,
-  situation: CurrentSituation
-) {
-  const { type: currentSVO, node: node } = goToUnitNode(currentNode);
-
-  if (currentSVO === SVO.None) {
-    return null;
-  } else if (currentSVO === SVO.Subject) {
-    return null;
-  }
-
-  const subjectSyntaxNode = findSubjectSyntaxNode(node);
-  if (!subjectSyntaxNode) return null;
-
-  let subjectTerm: RDF.Term | typeof AnonymousBlankNode | null;
-
-  if (subjectSyntaxNode.type.name === "Subject" || subjectSyntaxNode.type.name == "QtSubject") {
-    const subjectRaw = editorState.sliceDoc(subjectSyntaxNode.from, subjectSyntaxNode.to);
-    situation.subjectText = subjectRaw;
-    subjectTerm = syntaxNodeToTerm(editorState, directives, subjectSyntaxNode);
-  } else if (subjectSyntaxNode.type.name === "BlankNodePropertyList") {
-    situation.subjectText = "BlankNodePropertyList";
-    subjectTerm = AnonymousBlankNode;
+  if (firstUnit.type === SVO.Subject) {
+    return { currentSVO: SVO.Subject };
+  } else if (firstUnit.type === SVO.Verb) {
+    const subject = localizeReadSubject(directives, editorState, firstUnit.node);
+    if (subject === null) return null;
+    return {
+      currentSVO: SVO.Verb,
+      currentSubject: subject.term,
+      subjectToken: subject.token
+    };
+  } else if (firstUnit.type === SVO.Object) {
+    const sp = localizeReadSubjectPredicate(directives, editorState, firstUnit.node);
+    if (sp === null) return null;
+    return {
+      currentSVO: SVO.Object,
+      currentSubject: sp.subject,
+      subjectToken: sp.subjectToken,
+      currentPredicate: sp.predicate
+    };
   } else {
-    console.error("getSubjectInfo: found subject of type " + subjectSyntaxNode.type.name);
+    return null;
+  }
+}
+
+
+function localizeReadSubject(directives: TurtleDirectives, editorState: EditorState, node: SyntaxNode)
+: null | { term: RDF.Quad_Subject, token: string } {
+  if (node.type.name !== 'Verb') {
+    console.error("Assertion error - localizeReadSubject: not on a verb");
     return null;
   }
 
-  if (subjectTerm === null) return null;
-
-  let analysis: CurrentNodeAnalysis = {
-    types: new TermSet(), subjectOf: new TermSet()
-  };
-
-  if (subjectTerm === AnonymousBlankNode) { // Local search
-    situation.subjectTerm = DataFactory.blankNode("Anonymous");
-    extractAllTypes(editorState, directives, subjectSyntaxNode, analysis);
-  } else { // Search in all triples
-    situation.subjectTerm = subjectTerm;
-    allTypesOf(editorState, directives, tree, subjectTerm, analysis);
+  const parent = node.parent;
+  if (parent === null) {
+    console.error("Assertion error - localizeReadSubject: no parent");
+    return null;
   }
 
-  return { term: subjectTerm, analysis: analysis, currentSVO: currentSVO };
-}
+  switch (parent.type.name) {
+    case "Triples":
+    case "QuotedTriple": {
+      let sister: SyntaxNode | null = node;
 
+      while (true) {
+        sister = sister.prevSibling;
+        if (sister === null) {
+          return null;
+        }
 
-function findSubjectSyntaxNode(node: SyntaxNode | null) {
-  while (node !== null) {
-    if (node.type.name === 'Annotation') {
-      // Autocompletion inside annotations is not supported
-      return null;
-    }
-
-    if (node.type.name === 'BlankNodePropertyList') {
-      return node;
-    }
-
-    if (node.type.name === "Triples" || node.type.name === "QuotedTriple") {
-      return node.firstChild;
-    }
-
-    node = node.parent;
-  }
-
-  return null;
-}
-
-////////////////////////////////////////////////////////////////////////////////
-
-function allTypesOf(
-  editorState: EditorState,
-  directives: TurtleDirectives,
-  tree: Tree, term: RDF.Term, 
-  destination: CurrentNodeAnalysis
-) {
-  for (const triples of tree.topNode.getChildren("Triples")) {
-    // Get the subject syntax node of this triples
-    let child = triples.firstChild;
-    if (child === null) continue;
-    if (child.name !== 'Subject') continue;
-
-    // Is the subject of this triple the right subject?
-    const subject = syntaxNodeToTerm(editorState, directives, child);
-    if (subject === null) continue;
-    if (subject === AnonymousBlankNode) continue;
-    if (!subject.equals(term)) continue;
-
-    // Yes -> extract all values of rdf:type
-    extractAllTypes(editorState, directives, child, destination);
-  }
-}
-
-/**
- * `node` must be either a Subject or a BlankNodePropertyList. Its parent must
- * be a Triples.
- */
-function extractAllTypes(
-  editorState: EditorState,
-  directives: TurtleDirectives,
-  node: SyntaxNode,
-  destination: CurrentNodeAnalysis
-) {
-  if (node.name === 'BlankNodePropertyList') {
-
-    extractAllTypesOfVerbAndObjectList(
-      editorState, directives, node.firstChild, destination
-    );
-
-    if (node.parent && (node.parent.type.name === "Triples" || node.parent.type.name === 'QuotedTriple')) {
-      extractAllTypesOfVerbAndObjectList(
-        editorState, directives, node.nextSibling, destination
-      );
-    }
-
-  } else if (node.name === 'Subject' || node.name === 'QtSubject') {
-    extractAllTypesOfVerbAndObjectList(
-      editorState, directives, node.nextSibling, destination
-    );
-  } else {
-    console.error("extractAllTypesOfPredicateObjectList called on " + node.name);
-  }
-}
-
-function extractAllTypesOfVerbAndObjectList(
-  editorState: EditorState,
-  directives: TurtleDirectives,
-  node: SyntaxNode | null,
-  destination: CurrentNodeAnalysis
-) {
-  let rdfType = false;
-
-  while (node !== null) {
-//    console.log(node.name);
-    if (node.name === 'Verb') {
-      const predicate = syntaxNodeToTerm(editorState, directives, node);
-
-      if (predicate !== null && predicate !== AnonymousBlankNode) {
-        destination.subjectOf.add(predicate);
-        rdfType = ns.rdf.type.equals(predicate);
-      } else {
-        rdfType = false;
-      }
-    } else if (node.name === 'Object' || node.name === 'QtObject') {
-      if (rdfType) {
-        const object = syntaxNodeToTerm(editorState, directives, node);
-        if (object !== null && object !== AnonymousBlankNode) {
-          destination.types.add(object);
+        if (sister.type.name === "QtSubject" || sister.type.name === "Subject") {
+          break;
         }
       }
-    } else if (node.name === 'Annotation') {
-      // skip because it concerns another triple. Currently no autocompletion
-      // is supported in annotations
+
+      const s = STParser.subject(directives, editorState, sister);
+      const token = editorState.sliceDoc(sister.from, sister.to);
+      return s === null ? null : { term: s.readValue, token: token };
     }
+    case "BlankNodePropertyList": {
+      const s = STParser.blankNodePropertyList(directives, editorState, parent);
+      const token = editorState.sliceDoc(parent.from, parent.to);
+      return s === null ? null : { term: s.readValue, token: token };
+    }
+    case "Annotation": {
+      let sister: SyntaxNode | null = parent;
 
-    node = node.nextSibling;
+      while (true) {
+        sister = sister.prevSibling;
+        if (sister === null) return null;
+
+        if (sister.type.name === "Object") break;
+      }
+
+      const o = STParser.object(directives, editorState, sister);
+      if (o === null) return null;
+
+      const sp = localizeReadSubjectPredicate(directives, editorState, sister);
+      if (sp === null) return null;
+
+      return { term: $quad(sp.subject, sp.predicate, o.readValue), token: "(annotation)" };
+    }
+    default:
+      return null;
   }
-
-  return destination
 }
 
-function termToOption(term: RDF.Term, turtleDeclarations: TurtleDirectives): Completion {
-  return { label: termToCompletionLabel(term, turtleDeclarations) };
+function localizeReadSubjectPredicate(
+  directives: TurtleDirectives, editorState: EditorState, node: SyntaxNode
+): null | { subject: RDF.Quad_Subject, subjectToken: string, predicate: RDF.Quad_Predicate } {
+  if (node.type.name !== 'Object' && node.type.name !== 'QtObject') {
+    console.error("Assertion error - localizeReadSubject: not on an object");
+    return null;
+  }
+
+  if (node.parent !== null && node.parent.type.name === "Collection") {
+    const token = editorState.sliceDoc(node.parent.from, node.parent.to);
+    return {
+      subject: DataFactory.blankNode("some collection"),
+      subjectToken: token,
+      predicate: ns.rdf.first
+    };
+  }
+
+  let sister: SyntaxNode | null = node;
+
+  while (true) {
+    sister = sister.prevSibling;
+    if (sister === null) return null;
+    if (sister.type.name === "Verb") break;
+  }
+
+  const predicate = STParser.verb(directives, editorState, sister);
+  if (predicate === null) {
+    console.error("No verb in ReadSubjectPredicate");
+    return null;
+  }
+
+  const subject = localizeReadSubject(directives, editorState, sister);
+  if (subject === null) return null;
+  return { subject: subject.term, subjectToken: subject.token, predicate: predicate.readValue };
+}
+
+function goToUnitNode(node: SyntaxNode): null | { type: SVO, node: SyntaxNode } {
+  let x: SyntaxNode | null = node;
+  while (true) {
+    if (x === null) return null;
+
+    switch (x.type.name) {
+      case "Subject":
+      case "QtSubject":
+        return { type: SVO.Subject, node: x };
+      case "BlankNodePropertyList": {
+        if (x.parent) {
+          switch (x.parent.name) {
+            case "Subject":
+            case "QtSubject":
+              return { type: SVO.Subject, node: x.parent };
+            case "Triples":
+              return { type: SVO.Subject, node: x };
+            case "Object":
+            case "QtObject":
+              return { type: SVO.Object, node: x.parent };
+            default:
+              return null;
+          }
+        } else {
+          return null;
+        }
+      }
+      case "Verb":
+        return { type: SVO.Verb, node: x };
+      case "Object":
+      case "QtObject":
+        return { type: SVO.Object, node: x };
+      default:
+        x = x.parent;
+        break;
+    }
+  }
 }
 
 function pathToOption(suggestion: Suggestion, turtleDeclarations: TurtleDirectives): Completion {

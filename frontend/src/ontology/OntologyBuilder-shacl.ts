@@ -5,8 +5,11 @@ import * as n3 from 'n3';
 import TermMap from '@rdfjs/term-map';
 import TermSet from '@rdfjs/term-set';
 import Description from './Description';
+import addPath from './PathDecomposer';
 
 export default function addSHACL(builder: OntologyBuilder, store: RDF.DatasetCore) {
+  let generator = { nextBlankNode: 0 };
+
   const shapeNameToShape = extractListOfNodeShapes(store);
 
   for (const [shapeName, shape] of shapeNameToShape) {
@@ -38,7 +41,7 @@ export default function addSHACL(builder: OntologyBuilder, store: RDF.DatasetCor
       builder.rulesBuilder.shTargetNode(node, shapeName)  
     );
     
-    resolveShape(builder, store, shapeName, shape);
+    resolveShape(builder, store, shapeName, generator);
   }
 }
 
@@ -131,10 +134,8 @@ function extractListOfNodeShapes(shapeGraph: RDF.DatasetCore)
 function resolveShape(
   ontoBuilder: OntologyBuilder,
   store: RDF.DatasetCore,
-  shapeName: RDF.Term, shape: ShapeInGraph,
+  shapeName: RDF.Term, generator: { nextBlankNode: number }
 ) {
-
-
   for (const { object: property } of store.match(shapeName, ns.sh.property, null, $defaultGraph)) {
     const pathValues = store.match(property, ns.sh.path, null, $defaultGraph);
     const maxCounts = store.match(property, ns.sh.maxCount, null, $defaultGraph);
@@ -143,49 +144,37 @@ function resolveShape(
       continue;
     }
 
+    const pathDescription = new Description().addAllComments(store, property as RDF.Quad_Subject);
+
+    const endTypes = store.match(property, ns.sh.node, null, $defaultGraph);
+    const endType = endTypes.size === 0 ? null : [...endTypes][0].object;
+
     for (const pathValueQuad of pathValues) {
-      const object = pathValueQuad.object;
-      if (object.termType !== 'NamedNode') continue;
+      addPath(
+        pathValueQuad.object, store,
+        {
+          startType: shapeName,
+          endType: endType,
 
-      const pathDescription = buildPathDescription(store, property);
-      ontoBuilder.suggestibleBuilder.addShapePath(shapeName, object,
-        pathDescription
+          generateBlankType() {
+            return n3.DataFactory.blankNode("shacledturtle-bn-" + (++generator.nextBlankNode));
+          },
+
+          addPath(subjectType: RDF.Term, predicate: RDF.Term, objectType: RDF.Term, knowing: "subject" | "object") {
+            console.log(subjectType, predicate, objectType, knowing);
+            if (knowing === "subject") {
+              ontoBuilder.rulesBuilder.shPredicatePath(subjectType, predicate, objectType);
+              ontoBuilder.suggestibleBuilder.addShapePath(subjectType, predicate as RDF.NamedNode, pathDescription);
+            } else {
+              ontoBuilder.rulesBuilder.shInversePredicatePath(subjectType, predicate, objectType);
+            }
+          },
+
+          addSubshape(subshape: RDF.Term, supershape: RDF.Term) {
+            ontoBuilder.rulesBuilder.shSubShape(subshape, supershape);
+          }
+        }
       );
-
-      for (const { object: node } of store.match(property, ns.sh.node, null, $defaultGraph)) {
-        ontoBuilder.rulesBuilder.shPredicatePath(shapeName, object, node);
-      }
     }
   }
-}
-
-function buildPathDescription(store: RDF.DatasetCore, focus: RDF.Term): Description {
-  // TODO: integrate these predicates in Description
-  const labels = getLiterals(
-    store.match(focus, ns.rdfs.label, null, $defaultGraph),
-    store.match(focus, n3.DataFactory.namedNode(ns.sh[''].value + 'name'), null, $defaultGraph)
-  );
-  const comments = getLiterals(
-    store.match(focus, ns.rdfs.comment, null, $defaultGraph),
-    store.match(focus, ns.sh.comment, null, $defaultGraph)
-  );
-
-  const d = new Description();
-
-  for (const label of labels) d.labels.add(label);
-  for (const comment of comments) d.comments.add(comment);
-
-  return d;
-}
-
-function getLiterals(...quadss: Iterable<RDF.Quad>[]): TermSet<RDF.Literal> {
-  return new TermSet(
-    [...quadss]
-    .flatMap(quads => [...quads].map(quad => quad.object))
-    .filter(isLiteral)
-  );
-}
-
-function isLiteral(term: RDF.Term): term is RDF.Literal {
-  return term.termType === 'Literal';
 }

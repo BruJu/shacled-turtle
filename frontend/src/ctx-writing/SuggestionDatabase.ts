@@ -64,6 +64,8 @@ export default class SuggestionDatabase {
   constructor(triples: RDF.Quad[]) {
     const store: RDF.DatasetCore = new n3.Store(triples);
     this.ontology = Ontology.make(store);
+
+    console.log(this.ontology.suggestible);
   }
 
   /**

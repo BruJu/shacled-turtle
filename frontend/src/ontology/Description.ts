@@ -12,6 +12,12 @@ export default class Description {
     return this;
   }
 
+  addAllComments(store: RDF.DatasetCore, focus: RDF.Quad_Subject) {
+    this.addLabelsAndComments(store, focus);
+    this.addAll(Description.fromShacl(store, focus));
+    return this;
+  }
+
   private static insertInto(
     store: RDF.DatasetCore,
     subject: RDF.Quad_Subject, predicate: RDF.Quad_Predicate,
@@ -30,10 +36,10 @@ export default class Description {
     description.comments.forEach(l => this.comments.add(l));
   }
 
-  static fromShacl(store: RDF.DatasetCore, target: RDF.NamedNode) {
+  static fromShacl(store: RDF.DatasetCore, target: RDF.Quad_Subject): Description {
     const self = new Description();
-    Description.insertInto(store, target, ns.sh.apply('name'), self.labels);
+    //Description.insertInto(store, target, ns.sh.apply('name'), self.labels);
     Description.insertInto(store, target, ns.sh.comment, self.comments);
-    return this;
+    return self;
   }
 }

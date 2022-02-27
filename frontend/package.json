@@ -36,6 +36,7 @@
     "typescript": "^4.5.2"
   },
   "dependencies": {
+    "@bruju/automata-composer": "^1.0.0",
     "@bruju/lang-turtle": "file:../lang-turtle/bruju-lang-turtle-0.1.0.tgz",
     "@codemirror/autocomplete": "^0.19.9",
     "@codemirror/basic-setup": "^0.19.1",

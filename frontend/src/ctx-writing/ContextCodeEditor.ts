@@ -41,8 +41,8 @@ export default class ContextCodeEditor {
 function initialDocument() {
   let lines: string[] = [];
 
-  for (const prefix of ["rdf", "rdfs", "xsd", "prec", "pvar", "pgo", "ex"]) {
-    const builder = (ns as any)[prefix];
+  for (const prefix of <const>["rdf", "rdfs", "xsd", "prec", "pvar", "pgo", "ex"]) {
+    const builder = ns[prefix];
     if (builder !== undefined) {
       lines.push(`@prefix ${prefix}: <${builder[''].value}> .`);
     }

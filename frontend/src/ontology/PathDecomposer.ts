@@ -1,72 +1,124 @@
 import * as RDF from "@rdfjs/types";
 import TermSet from "@rdfjs/term-set";
-import TermMap from "@rdfjs/term-map";
 import { ns } from "../PRECNamespace";
-import { DataFactory } from "n3";
-import { addInTermMultiMap, addTermPairInTermMultiMap } from "../util";
+import * as AC from "@bruju/automata-composer";
+import { stringToTerm, termToString } from "rdf-string";
 
+export default function addPath(
+  pathName: RDF.Term, shapeGraph: RDF.DatasetCore,
+  writer: PathWriter
+) {
+  const composed = decompose(pathName, shapeGraph);
+  if (composed === null) return false;
 
-export default function buildPath(
-  pathName: RDF.Term,
-  shapeGraph: RDF.DatasetCore,
-  generator: Generator = new Generator()
-): Path | null {
+  const fsa = composed.build();
+
+  let stateIdToTerm = new Map<number, RDF.Term>();
+  function getNodeTypeOfStateId(id: number): RDF.Term {
+    let r = stateIdToTerm.get(id);
+    if (r === undefined) {
+      r = writer.generateBlankType();
+      stateIdToTerm.set(id, r);
+    }
+    return r;
+  }
+
+  stateIdToTerm.set(fsa.start.id, writer.startType);
+
+  if (writer.endType !== null) {
+    if (fsa.ends.length === 1) {
+      if (fsa.start.id === fsa.ends[0].id) {
+        writer.addSubshape(writer.startType, writer.endType);
+      } else {
+        stateIdToTerm.set(fsa.ends[0].id, writer.endType);
+      }
+    } else {
+      for (const end of fsa.ends) {
+        const node = getNodeTypeOfStateId(end.id);
+        writer.addSubshape(node, writer.endType);
+      }
+    }
+  }
+
+  for (const state of fsa.states) {
+    const myType = getNodeTypeOfStateId(state.id);
+
+    for (const [transition, target] of state.transitions) {
+      const hisType = getNodeTypeOfStateId(target.id);
+
+      const predicate = stringToTerm(transition.slice(1));
+      const isPlus = transition[0] === "+";
+      writer.addPath(
+        isPlus ? myType : hisType,
+        predicate as RDF.Quad_Predicate,
+        isPlus ? hisType : myType,
+        isPlus ? "subject" : "object"
+      );
+    }
+  }
+
+  return true;
+}
+
+export interface PathWriter {
+  readonly startType: RDF.Term;
+  readonly endType: RDF.Term | null;
+  generateBlankType(): RDF.BlankNode
+  
+  addPath(subjectType: RDF.Term, predicate: RDF.Term, objectType: RDF.Term, knowing: 'subject' | 'object'): void;
+  addSubshape(subshape: RDF.Term, supershape: RDF.Term): void;
+};
+
+function decompose(
+  pathName: RDF.Term, shapeGraph: RDF.DatasetCore
+): AC.AutomataComposer | null {
   const t = typeOfPathOf(pathName, shapeGraph);
 
   if (t === null) return null;
 
   switch(t.type) {
-    case "Predicate": {
-      const src = generator.next();
-      const dest = generator.next();
-  
-      return NewPath.predicatePath(src, dest, t.predicate);
-    }
+    case "Predicate":
+      return AC.unit("+" + termToString(t.predicate));
     case "Inverse": {
-      const original = buildPath(t.pathName, shapeGraph, generator);
+      const original = decompose(t.pathName, shapeGraph);
       if (original === null) return null;
-      return original.inverse();
+      return AC.modifyTransitions(original,
+        symbol => {
+          if (symbol[0] === "+") return "-" + symbol.slice(1);
+          else return "+" + symbol.slice(1);
+        }
+      );
     }
     case "Alternative": {
-      const paths = t.pathsName.map(name => buildPath(name, shapeGraph, generator));
+      const paths = t.pathsName.map(name => decompose(name, shapeGraph));
       if (paths.includes(null)) return null;
-      return NewPath.alternative(paths as Path[], generator);
+
+      const paths_ = paths as AC.AutomataComposer[];
+
+      return paths_.reduce(
+        (acc, newElement) => AC.or(acc, newElement),
+        new AC.AutomataComposer(0, 1, [])
+      );
     }
     case "Sequence": {
-      const paths = t.pathsName.map(name => buildPath(name, shapeGraph, generator));
+      const paths = t.pathsName.map(name => decompose(name, shapeGraph));
       if (paths.includes(null)) return null;
-      return NewPath.sequence(paths as Path[], generator);
+      return AC.chain(...paths as AC.AutomataComposer[]);
     }
-    case "ZeroOrOne":
-    case "OneOrMore":
+    case "ZeroOrOne": {
+      const original = decompose(t.pathName, shapeGraph);
+      if (original === null) return null;
+      return AC.maybe(original);
+    }
+    case "OneOrMore": {
+      const original = decompose(t.pathName, shapeGraph);
+      if (original === null) return null;
+      return AC.plus(original);
+    }
     case "ZeroOrMore": {
-      const path = buildPath(t.pathName, shapeGraph, generator);
-      if (path === null) return null;
-
-      const source = generator.next();
-      const intermediate = generator.next();
-      const end = generator.next();
-
-      const inh: TermMap<RDF.Term, TermSet> = new TermMap();
-
-      if (t.type !== "OneOrMore") {
-        addTermPairInTermMultiMap(inh, source, end);
-      }
-
-      addTermPairInTermMultiMap(inh, source, path.source);
-      addTermPairInTermMultiMap(inh, path.destination, end); 
-
-      if (t.type !== "ZeroOrOne") {
-        addTermPairInTermMultiMap(inh, path.destination, intermediate);
-        addTermPairInTermMultiMap(inh, intermediate, path.source);
-      }
-
-      return new Path(
-        source,
-        end,
-        addInTermMultiMap(inh, path.inheritence),
-        path.edges
-      );
+      const original = decompose(t.pathName, shapeGraph);
+      if (original === null) return null;
+      return AC.star(original);
     }
     default:
       return null;
@@ -147,151 +199,3 @@ function extractList(target: RDF.Term, dataset: RDF.DatasetCore) {
   return result;
 }
 
-///////////////////////////////////////////////////////////////////////////////
-
-function $quad(s: RDF.Term, p: RDF.Term, o: RDF.Term, g: RDF.Term) {
-  return DataFactory.quad(
-    s as RDF.Quad_Subject,
-    p as RDF.Quad_Predicate,
-    o as RDF.Quad_Object,
-    g as RDF.Quad_Graph
-  );
-}
-
-///////////////////////////////////////////////////////////////////////////////
-
-
-export const NewPath = {
-  emptyPath(generator: Generator): Path {
-    return new Path(
-      generator.next(),
-      generator.next(),
-      new TermMap(),
-      []
-    );
-  },
-
-  predicatePath(
-    source: RDF.Term, destination: RDF.Term,
-    predicate: RDF.NamedNode
-  ): Path {
-    return new Path(
-      source, destination, new TermMap(),
-      [$quad(source, predicate, destination, source)]
-    );
-  },
-
-  alternative(paths: Path[], generator: Generator): Path {
-    const source = generator.next();
-    const destination = generator.next();
-
-    const inh: TermMap<RDF.Term, TermSet> = new TermMap();
-
-    for (const path of paths) {
-      addTermPairInTermMultiMap(inh, source, path.source);
-      addTermPairInTermMultiMap(inh, path.destination, destination);
-      addInTermMultiMap(inh, path.inheritence);
-    }
-
-    return new Path(
-      source, destination,
-      inh,
-      paths.flatMap(path => path.edges)
-    )
-  },
-
-  sequence(paths: Path[], generator: Generator): Path {
-    if (paths.length === 0) {
-      const start = generator.next();
-      const end = generator.next();
-      return new Path(
-        start,
-        end,
-        new TermMap([
-          [start, new TermSet([end])]
-        ]),
-        []
-      );
-    }
-
-    let result = paths[0];
-
-    for (let i = 1; i != paths.length; ++i) {
-      result = result.chain(paths[i]);
-    }
-
-    return result;
-  }
-};
-
-
-export class Path {
-  readonly source: RDF.Term;
-  readonly destination: RDF.Term;
-  readonly inheritence: TermMap<RDF.Term, TermSet>;
-  readonly edges: RDF.Quad[];
-
-  constructor(
-    source: RDF.Term,
-    destination: RDF.Term,
-    inheritence: TermMap<RDF.Term, TermSet>,
-    edges: RDF.Quad[]
-  ) {
-    this.source = source;
-    this.destination = destination;
-    this.inheritence = inheritence;
-    this.edges = edges;
-  }
-
-  inverse(): Path {
-    return new Path(
-      this.source,
-      this.destination,
-      this.inheritence,
-      this.edges.map(edge => $quad(edge.object, edge.predicate, edge.subject, edge.graph))
-    );
-  }
-
-  chain(path: Path): Path {
-    return new Path(
-      this.source, path.destination,
-      addTermPairInTermMultiMap(
-        addInTermMultiMap(
-          cloneTermMultiMap(this.inheritence),
-          path.inheritence
-        ),
-        this.destination,
-        path.source
-      ),
-      [...this.edges, ...path.edges]
-    );
-  }
-
-  clone(): Path {
-    return new Path(
-      this.source,
-      this.destination,
-      cloneTermMultiMap(this.inheritence),
-      [...this.edges]
-    );
-  }
-}
-
-function cloneTermMultiMap(map: TermMap<RDF.Term, TermSet>) {
-  const clone: TermMap<RDF.Term, TermSet> = new TermMap();
-  
-  for (const [k, v] of map) {
-    clone.set(k, new TermSet([...v]));
-  }
-
-  return clone;
-}
-
-
-class Generator {
-  private nextId = 1;
-
-  next(): RDF.Term {
-    return DataFactory.literal(this.nextId++);
-  }
-}
