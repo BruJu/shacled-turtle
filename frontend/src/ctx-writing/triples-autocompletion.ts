@@ -1,19 +1,18 @@
 import { EditorState } from "@codemirror/state";
 import { SyntaxNode, Tree } from "@lezer/common";
-import { CurrentSituation, TurtleDirectives } from "./autocompletion-solving";
+import { TurtleDirectives } from "./autocompletion-solving";
 import namespace from '@rdfjs/namespace';
 import * as RDF from '@rdfjs/types';
 import { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { $quad, ns } from "../PRECNamespace";
-import SuggestionDatabase, { SuggestableType } from "./SuggestionDatabase";
+import SuggestionDatabase from "./SuggestionDatabase";
 import { termToString } from 'rdf-string';
-import { DataFactory } from "n3";
 import Description from "../ontology/Description";
 import { Suggestion } from "../ontology/Suggestible";
-import DoubleDataset from "./state/DoubleDataset";
 import * as STParser from "./Parser";
 import CurrentTriples from "./state/CurrentState";
 import Ontology from "../ontology/OntologyBuilder";
+import DebugInformation from "./DebugInformation";
 
 let suggestions: SuggestionDatabase | null = null;
 SuggestionDatabase.load(/* PREC Shacl Graph */).then(db => suggestions = db);
@@ -34,7 +33,7 @@ export function tripleAutocompletion(
   compCtx: CompletionContext,
   tree: Tree,
   currentNode: SyntaxNode,
-  situation: CurrentSituation
+  situation: DebugInformation
 ): CompletionResult | null {
   const word = compCtx.matchBefore(/[a-zA-Z"'0-9_+-/<>:\\]*/);
   if (word === null) return null;
@@ -49,13 +48,8 @@ export function tripleAutocompletion(
   }
 
   if (localized.currentSVO === SVO.Subject) return null;
-  situation.subjectText = localized.subjectToken;
-  situation.subjectTerm = localized.currentSubject;
 
-  situation.typesOfSubject = [
-    ...current.meta.types.getAll(localized.currentSubject),
-    ...current.meta.shapes.getAll(localized.currentSubject)
-  ];
+  situation.setSubject(localized.subjectToken, localized.currentSubject, current.meta);
 
   let options: Completion[] = [];
 
@@ -243,9 +237,10 @@ function localizeReadSubjectPredicate(
   }
 
   if (node.parent !== null && node.parent.type.name === "Collection") {
-    const token = editorState.sliceDoc(node.parent.from, node.parent.to);
+    const token = editorState.sliceDoc(node.parent.from, node.parent.to)
+      + "[" + editorState.sliceDoc(node.from, node.to) + "]";
     return {
-      subject: DataFactory.blankNode("some collection"),
+      subject: STParser.getCollectionElementNode(node),
       subjectToken: token,
       predicate: ns.rdf.first
     };
@@ -346,7 +341,7 @@ function toOption(
   return res;
 }
 
-function typeToOption(type: SuggestableType, directives: TurtleDirectives) {
+function typeToOption(type: Suggestion, directives: TurtleDirectives) {
   return toOption(type.term, type.description, directives);
 }
 

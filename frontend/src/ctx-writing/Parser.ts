@@ -4,7 +4,6 @@ import { DataFactory } from "n3";
 import { ns, $quad } from "../PRECNamespace";
 import { TurtleDirectives } from "./autocompletion-solving";
 import * as RDF from "@rdfjs/types";
-import { prefixedNameSyntaxNodeToTerm } from "./token-to-term";
 
 type TriplesReadResult<Term = RDF.Term>
   = null
@@ -77,14 +76,28 @@ function quotedTriple(
   return { readValue: r[0], nestedTriples: [] };
 }
 
+export function getCollectionElementNode(objectNode: SyntaxNode): RDF.BlankNode {
+  const isUnexpectedStructure = objectNode.type.name !== "Object"
+    || objectNode.parent === null || objectNode.parent.type.name !== "Collection";
+  
+  if (isUnexpectedStructure) {
+    console.error(
+      "getCollectionElementNode: invalid usage ; parameter is a"
+       + objectNode.type.name + " with " + objectNode.parent?.type.name
+       + " as a parent but it should be an Object in a Collection" 
+    );
+  }
+
+  const positionalName = "_shacledturtle_col-" + objectNode.from + "~" + objectNode.to;
+  return DataFactory.blankNode(positionalName);
+}
+
 function collection(
   known: TurtleDirectives, editorState: EditorState,
   currentNode: SyntaxNode
 ): TriplesReadResult<RDF.NamedNode | RDF.BlankNode> {
-  const uniqueName = "_shacledturtle_col-" + currentNode.from + "~" + currentNode.to
-
   // Read objects
-  const objects: { start: number, end: number, value: RDF.Quad_Object }[] = [];
+  const objects: { syntaxNode: SyntaxNode, value: RDF.Quad_Object }[] = [];
   let quads: RDF.Quad[] = [];
 
   let child = currentNode.firstChild;
@@ -92,7 +105,7 @@ function collection(
     const r = object(known, editorState, child);
     if (r === null) break;
 
-    objects.push({ start: child.from, end: child.to, value: r.readValue });
+    objects.push({ syntaxNode: child, value: r.readValue });
     quads.push(...r.nestedTriples);
 
     child = child.nextSibling;
@@ -102,9 +115,8 @@ function collection(
 
   for (let i = 0; i != objects.length; ++i) {
     let reverseI = objects.length - i - 1;
-    const { start, end, value } = objects[reverseI];
-    let generatedName = uniqueName + "#" + start + "~" + end;
-    let newHead = DataFactory.blankNode(generatedName);
+    const { syntaxNode, value } = objects[reverseI];
+    const newHead = getCollectionElementNode(syntaxNode)
 
     quads.push(
       $quad(newHead, ns.rdf.first, value),
@@ -248,6 +260,30 @@ function prefixedName(
 }
 
 
+/**
+ * Assuming that node points to a PrefixedName, gives the corresponding term.
+ * If the prefix is in the list of directives, returns a named node.
+ * If the prefix is not in the list of directives, returns a variable.
+ */
+function prefixedNameSyntaxNodeToTerm(
+  editorState: EditorState,
+  directives: TurtleDirectives,
+  node: SyntaxNode
+): RDF.NamedNode | RDF.Variable | null {
+  const pnPrefixNode = node.getChild('PN_PREFIX');
+  const pnLocalNode = node.getChild('PN_LOCAL');
+
+  const prefix = pnPrefixNode === null ? "" : editorState.sliceDoc(pnPrefixNode.from, pnPrefixNode.to);
+  if (pnLocalNode === null) return null;
+
+  const localNodeText = editorState.sliceDoc(pnLocalNode.from, pnLocalNode.to);
+  
+  const builder = directives.prefixes[prefix];
+  if (builder === undefined) return DataFactory.variable(prefix + ":" + localNodeText);
+  return builder[localNodeText];
+}
+
+
 function blankNode(
   editorState: EditorState, currentNode: SyntaxNode
 ): TriplesReadResult<RDF.BlankNode> {
@@ -271,9 +307,7 @@ function rdfLiteral(
   return wrapLiteral(DataFactory.literal(token));
 }
 
-function numericLiteral(
-  editorState: EditorState, currentNode: SyntaxNode
-) {
+function numericLiteral(editorState: EditorState, currentNode: SyntaxNode) {
   const token = editorState.sliceDoc(currentNode.from, currentNode.to);
 
   try {

@@ -1,9 +1,6 @@
-import TermMap from '@rdfjs/term-map';
-import TermSet from '@rdfjs/term-set';
 import * as RDF from '@rdfjs/types';
 import axios from 'axios';
 import * as n3 from 'n3';
-import Description from '../ontology/Description';
 import MetaDataState from '../ontology/MetaDataState';
 import Ontology from '../ontology/OntologyBuilder';
 import { Suggestion } from '../ontology/Suggestible';
@@ -15,31 +12,9 @@ import { Suggestion } from '../ontology/Suggestible';
 //
 // Here, we use the shape graph to power up an autocompletion engine ?
 
-const $variable = n3.DataFactory.variable;
-
 /** The PREC validation shape graph */
 export const PREC_SHAPE_GRAPH_LINK = "https://raw.githubusercontent.com/BruJu/PREC/ContextShape/data/PRECContextShape.ttl";
 
-export type PathInfo = {
-  why: ShapeOrigin,
-  description: PathDescription;
-};
-
-export type PathDescription = {
-  labels?: RDF.Literal[];
-  descriptions?: RDF.Literal[];
-};
-
-export type SuggestableType = {
-  term: RDF.Term,
-  description: Description
-};
-
-
-export type ShapeOrigin =
-  { type: 'node' }
-  | { type: 'type', value: RDF.Term }
-  | { type: 'subjectOf', value: RDF.Term };
 
 /**
  * A database used to suggest some terms for auto completion, backed by a SHACL
