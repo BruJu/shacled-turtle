@@ -15,7 +15,6 @@ export default class CurrentTriples {
   }
 
   add(triple: RDF.Quad): void {
-    console.log("add", triple)
     this.dataset.add(triple);
     this.ontology.ruleset.onNewTriple(triple, this.dataset, this.meta);
   }  
