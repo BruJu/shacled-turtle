@@ -1,0 +1,12 @@
+{
+  "name": "prec-demo",
+  "workspaces": [
+    "backend",
+    "frontend",
+    "lang-turtle",
+    "shacled-turtle"
+  ],
+  "devDependencies": {
+    "process": "^0.11.10"
+  }
+}

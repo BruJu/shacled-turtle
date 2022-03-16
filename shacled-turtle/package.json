@@ -1,0 +1,47 @@
+{
+  "name": "shacled-turtle",
+  "version": "0.0.1",
+  "description": "Code Mirror Turtle language support with autocompletion",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "npx mocha -r ts-node/register test/*.test.ts",
+    "prepack": "npm run build",
+    "build": "npx tsc --build"
+  },
+  "keywords": [
+    "turtle",
+    "code mirror",
+    "autocompletion"
+  ],
+  "author": "Julian Bruyat <julian.bruyat@insa-lyon.fr>",
+  "license": "MIT",
+  "devDependencies": {
+    "@rdfjs/types": "^1.1.0",
+    "@types/mocha": "^9.1.0",
+    "@types/n3": "^1.10.4",
+    "@types/rdfjs__namespace": "^1.1.5",
+    "mocha": "^9.2.2",
+    "ts-node": "^10.7.0",
+    "typescript": "^4.6.2"
+  },
+  "dependencies": {
+    "@bruju/automata-composer": "^1.0.0",
+    "@bruju/lang-turtle": "*",
+    "@codemirror/autocomplete": "^0.19.14",
+    "@codemirror/language": "^0.19.8",
+    "@lezer/common": "^0.15.11",
+    "@rdfjs/namespace": "^1.1.0",
+    "@rdfjs/term-map": "^1.1.0",
+    "@rdfjs/term-set": "^1.1.0",
+    "@types/rdfjs__term-map": "^1.0.2",
+    "@types/rdfjs__term-set": "^1.0.3",
+    "n3": "^1.14.0",
+    "rdf-string": "^1.6.0"
+  },
+  "files": [
+    "dist/index.js",
+    "dist/index.d.ts",
+    "dist/src/**"
+  ]
+}

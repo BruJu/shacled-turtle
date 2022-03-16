@@ -1,5 +1,5 @@
 import * as RDF from "@rdfjs/types";
-import Ontology from "../../ontology/OntologyBuilder";
+import Ontology from "../ontology/OntologyBuilder";
 import DoubleDataset from "./DoubleDataset";
 import DoubleMeta from "./DoubleMeta";
 

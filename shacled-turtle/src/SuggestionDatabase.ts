@@ -1,9 +1,8 @@
 import * as RDF from '@rdfjs/types';
-import axios from 'axios';
 import * as n3 from 'n3';
-import MetaDataState from '../ontology/MetaDataState';
-import Ontology from '../ontology/OntologyBuilder';
-import { Suggestion } from '../ontology/Suggestible';
+import MetaDataState from './ontology/MetaDataState';
+import Ontology from './ontology/OntologyBuilder';
+import { Suggestion } from './ontology/Suggestible';
 
 // Term suggestion database that resorts to a SHACL shape graph.
 
@@ -12,28 +11,12 @@ import { Suggestion } from '../ontology/Suggestible';
 //
 // Here, we use the shape graph to power up an autocompletion engine ?
 
-/** The PREC validation shape graph */
-export const PREC_SHAPE_GRAPH_LINK = "https://raw.githubusercontent.com/BruJu/PREC/ContextShape/data/PRECContextShape.ttl";
-
 
 /**
  * A database used to suggest some terms for auto completion, backed by a SHACL
  * graph.
  */
 export default class SuggestionDatabase {
-  /**
-   * Build a SuggestionDatabase for the ontology described by the shape graph
-   * located at the given URL
-   * @param shapeGraphUrl The URL of the shape graph
-   * @returns At some point, a SuggestionDatabase
-   */
-  static async load(shapeGraphUrl: string = PREC_SHAPE_GRAPH_LINK): Promise<SuggestionDatabase> {
-    const answer = await axios.get<string>(shapeGraphUrl);
-    if (answer.status !== 200) throw Error("SuggestionDatabase::load: Error " + answer.status);
-
-    return new SuggestionDatabase(new n3.Parser().parse(answer.data));
-  }
-
   readonly ontology: Ontology;
 
   constructor(triples: RDF.Quad[]) {

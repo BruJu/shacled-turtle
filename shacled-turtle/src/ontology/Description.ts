@@ -1,6 +1,6 @@
 import * as RDF from "@rdfjs/types";
 import TermSet from "@rdfjs/term-set";
-import { ns } from "../PRECNamespace";
+import { ns } from "../namespaces";
 
 export default class Description {
   labels: TermSet<RDF.Literal> = new TermSet();

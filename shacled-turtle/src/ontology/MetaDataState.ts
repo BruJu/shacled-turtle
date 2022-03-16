@@ -1,7 +1,6 @@
 import TermMap from "@rdfjs/term-map";
 import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
-import { getWithDefaultInTermMultiMap } from "../util";
 import Ontology from "./OntologyBuilder";
 import { MetaBaseInterface, MetaBaseInterfaceComponent } from "./Ruleset";
 
@@ -24,7 +23,12 @@ export class MetaDataStateComponent implements MetaBaseInterfaceComponent {
   readonly data: TermMap<RDF.Term, TermSet> = new TermMap();
 
   add(resource: RDF.Term, classifier: RDF.Term): boolean {
-    const classifiedAs = getWithDefaultInTermMultiMap(this.data, resource);
+    let classifiedAs = this.data.get(resource);
+    if (classifiedAs === undefined) {
+      classifiedAs = new TermSet();
+      this.data.set(resource, classifiedAs);
+    }
+    
     if (classifiedAs.has(classifier)) return false;
 
     classifiedAs.add(classifier);

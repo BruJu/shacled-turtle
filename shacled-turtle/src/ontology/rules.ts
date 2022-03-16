@@ -1,5 +1,5 @@
 import * as RDF from "@rdfjs/types";
-import { ns, $quad as $$quad, $variable } from "../PRECNamespace";
+import { ns, $quad as $$quad, $variable } from "../namespaces";
 
 function $quad(subject: RDF.Term, predicate: RDF.Term, object: RDF.Term) {
   return $$quad(

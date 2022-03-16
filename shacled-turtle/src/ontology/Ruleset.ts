@@ -2,7 +2,7 @@ import TermMap from "@rdfjs/term-map";
 import { TermSet } from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types"
 import { termToString } from "rdf-string";
-import { $defaultGraph, ns } from "../PRECNamespace";
+import { $defaultGraph, ns } from "../namespaces";
 import { getWithDefault } from "../util";
 import * as Build from "./rules";
 import * as n3 from 'n3';

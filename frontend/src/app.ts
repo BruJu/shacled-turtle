@@ -2,9 +2,10 @@ import * as RDF from '@rdfjs/types';
 import axios from "axios";
 import { Parser } from 'n3';
 import data from './base_pg.json';
-import ContextCodeEditor from './ctx-writing/ContextCodeEditor';
+import ContextCodeEditor from './ContextCodeEditor';
 import { ns, boringTypes } from './PRECNamespace';
 import rdfToDot from "./rdf-to-dot";
+import { PREC_SHAPE_GRAPH_LINK } from './things';
 
 
 class PrecDemo {
@@ -20,6 +21,7 @@ class PrecDemo {
     this._pgTextArea.value = JSON.stringify(data, null, 2);
 
     this._contextWriter = new ContextCodeEditor(document.getElementById('context_div')!);
+    this._contextWriter.changeOntology(PREC_SHAPE_GRAPH_LINK);
 
     // Buttons
     this._showBoringCheckbox = getHtmlElement<HTMLInputElement>("show_boring_types")!;

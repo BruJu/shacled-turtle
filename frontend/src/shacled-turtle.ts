@@ -1,7 +1,6 @@
 import { EditorView } from "@codemirror/view";
-import ContextCodeEditor from "./ctx-writing/ContextCodeEditor";
-import { PREC_SHAPE_GRAPH_LINK } from "./ctx-writing/SuggestionDatabase";
-import { changeShaclGraph } from "./ctx-writing/triples-autocompletion";
+import ContextCodeEditor from "./ContextCodeEditor";
+import { PREC_SHAPE_GRAPH_LINK } from "./things";
 
 const theme = EditorView.theme({
   "&": { height: "600px" },
@@ -10,10 +9,11 @@ const theme = EditorView.theme({
 });
 
   
-new ContextCodeEditor(
-  document.getElementById("editor")!,
-  [theme]
+const ctxEditor = new ContextCodeEditor(
+  document.getElementById("editor")!, [theme]
 );
+
+ctxEditor.changeOntology(PREC_SHAPE_GRAPH_LINK);
 
 document.getElementById("prec_shacl_graph")!
 .setAttribute("href", PREC_SHAPE_GRAPH_LINK)
@@ -40,7 +40,7 @@ document.getElementById("shape_url_button")
   input.classList.remove("is-success");
   input.classList.remove("is-danger");
 
-  const res = await changeShaclGraph(input.value);
+  const res = await ctxEditor.changeOntology(input.value);
   button.classList.remove("is-loading");
 
   if (res) {

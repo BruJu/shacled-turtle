@@ -1,7 +1,7 @@
 import { EditorState } from "@codemirror/state";
 import { SyntaxNode } from "@lezer/common";
 import { DataFactory } from "n3";
-import { ns, $quad } from "../PRECNamespace";
+import { ns, $quad } from "./namespaces";
 import { TurtleDirectives } from "./autocompletion-solving";
 import * as RDF from "@rdfjs/types";
 

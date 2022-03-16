@@ -1,7 +1,7 @@
 import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
-import { MetaDataStateComponent } from "../../ontology/MetaDataState";
-import { MetaBaseInterface, MetaBaseInterfaceComponent } from "../../ontology/Ruleset";
+import { MetaDataStateComponent } from "../ontology/MetaDataState";
+import { MetaBaseInterface, MetaBaseInterfaceComponent } from "../ontology/Ruleset";
 
 
 export default class DoubleMeta implements MetaBaseInterface {

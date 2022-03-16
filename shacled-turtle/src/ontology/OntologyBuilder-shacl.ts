@@ -1,6 +1,6 @@
 import * as RDF from '@rdfjs/types'
 import { OntologyBuilder } from './OntologyBuilder';
-import { ns, $quad, $defaultGraph } from '../PRECNamespace';
+import { ns, $quad, $defaultGraph } from '../namespaces';
 import * as n3 from 'n3';
 import TermMap from '@rdfjs/term-map';
 import TermSet from '@rdfjs/term-set';

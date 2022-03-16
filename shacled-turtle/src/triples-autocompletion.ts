@@ -1,26 +1,24 @@
 import { EditorState } from "@codemirror/state";
 import { SyntaxNode, Tree } from "@lezer/common";
 import { TurtleDirectives } from "./autocompletion-solving";
-import namespace from '@rdfjs/namespace';
+import rdfNamespace from '@rdfjs/namespace';
 import * as RDF from '@rdfjs/types';
 import { Completion, CompletionContext, CompletionResult } from "@codemirror/autocomplete";
-import { $quad, ns } from "../PRECNamespace";
+import { $quad, ns } from "./namespaces";
 import SuggestionDatabase from "./SuggestionDatabase";
 import { termToString } from 'rdf-string';
-import Description from "../ontology/Description";
-import { Suggestion } from "../ontology/Suggestible";
+import Description from "./ontology/Description";
+import { Suggestion } from "./ontology/Suggestible";
 import * as STParser from "./Parser";
 import CurrentTriples from "./state/CurrentState";
-import Ontology from "../ontology/OntologyBuilder";
+import Ontology from "./ontology/OntologyBuilder";
 import DebugInformation from "./DebugInformation";
 
 let suggestions: SuggestionDatabase | null = null;
-SuggestionDatabase.load(/* PREC Shacl Graph */).then(db => suggestions = db);
 
-export async function changeShaclGraph(url: string): Promise<boolean> {
+export function changeShaclGraph(triples: RDF.Quad[]): boolean {
   try {
-    const db = await SuggestionDatabase.load(url);
-    suggestions = db;
+    suggestions = new SuggestionDatabase(triples)
     return true;
   } catch (err) {
     return false;
@@ -36,17 +34,18 @@ export function tripleAutocompletion(
   situation: DebugInformation
 ): CompletionResult | null {
   const word = compCtx.matchBefore(/[a-zA-Z"'0-9_+-/<>:\\]*/);
+  console.log("word");
   if (word === null) return null;
-
+  console.log("suggestions");
   if (suggestions === null) return null;
 
   const { current, directives } = buildDatasetFromScratch(compCtx.state, tree.topNode, suggestions.ontology);
-
+  console.log("localize");
   const localized = localize(compCtx.state, currentNode, directives);
   if (localized === null) {
     return null;
   }
-
+  console.log("SVOSUbject");
   if (localized.currentSVO === SVO.Subject) return null;
 
   situation.setSubject(localized.subjectToken, localized.currentSubject, current.meta);
@@ -115,7 +114,7 @@ function readDirective(known: TurtleDirectives, editorState: EditorState, curren
   if (iriRefNode === null) return;
 
   const iriStr = editorState.sliceDoc(iriRefNode.from, iriRefNode.to);
-  const describedNamespace = namespace(iriStr.slice(1, iriStr.length - 1));
+  const describedNamespace = rdfNamespace(iriStr.slice(1, iriStr.length - 1));
 
   if (child.name === "Base" || child.name === "SparqlBase") {
     known.base = describedNamespace;

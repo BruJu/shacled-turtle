@@ -1,6 +1,6 @@
 import * as RDF from "@rdfjs/types";
 import TermSet from "@rdfjs/term-set";
-import { ns } from "../PRECNamespace";
+import { ns } from "../namespaces";
 import * as AC from "@bruju/automata-composer";
 import { stringToTerm, termToString } from "rdf-string";
 

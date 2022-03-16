@@ -1,43 +1,52 @@
 import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { syntaxTree } from "@codemirror/language";
 import { SyntaxNode, TreeCursor } from "@lezer/common";
-import namespace from '@rdfjs/namespace';
-import { ns } from "../PRECNamespace";
+import rdfNamespace from '@rdfjs/namespace';
+import { ns } from "./namespaces";
 import DebugInformation from "./DebugInformation";
 import { tripleAutocompletion } from "./triples-autocompletion";
 
 
 export type TurtleDirectives = {
-  base: namespace.NamespaceBuilder<string> | null;
-  prefixes: {[prefix: string]: namespace.NamespaceBuilder<string>}
+  base: rdfNamespace.NamespaceBuilder<string> | null;
+  prefixes: {[prefix: string]: rdfNamespace.NamespaceBuilder<string>}
 };
 
 enum TypeOfStatement { Triple, Directive }
 
-export default function autocompletionSolve(context: CompletionContext)
-: null | CompletionResult {
-  const tree = syntaxTree(context.state);
-  const theNode: SyntaxNode | null = tree.resolve(context.pos, -1);
-  if (theNode === null) return null;
+export default function autocompletionSolve(
+  onDebugInfo?: (debug: DebugInformation) => void
+) {
+  function trueAutocompletionSolve(context: CompletionContext)
+  : null | CompletionResult {
+    const tree = syntaxTree(context.state);
+    const theNode: SyntaxNode | null = tree.resolve(context.pos, -1);
+    if (theNode === null) return null;
 
-  let cursor = theNode.cursor;
+    let cursor = theNode.cursor;
 
-  const typeOfStatement = goToTypeOfStatement(cursor);
-  if (typeOfStatement === null) return null;
+    const typeOfStatement = goToTypeOfStatement(cursor);
+    if (typeOfStatement === null) return null;
 
-  const situation = new DebugInformation(theNode);
+    const situation = new DebugInformation(theNode);
 
-  let retval: CompletionResult | null = null;
-  if (typeOfStatement === TypeOfStatement.Directive) {
-    situation.autoCompletionType = 'directive';
-    retval = directiveAutocompletion(context, cursor.node, theNode);
-  } else if (typeOfStatement === TypeOfStatement.Triple) {
-    situation.autoCompletionType = 'triples';
-    retval = tripleAutocompletion(context, tree, theNode, situation);
+    let retval: CompletionResult | null = null;
+    if (typeOfStatement === TypeOfStatement.Directive) {
+      situation.autoCompletionType = 'directive';
+      retval = directiveAutocompletion(context, cursor.node, theNode);
+    } else if (typeOfStatement === TypeOfStatement.Triple) {
+      situation.autoCompletionType = 'triples';
+      retval = tripleAutocompletion(context, tree, theNode, situation);
+    }
+
+    if (onDebugInfo !== undefined) {
+      onDebugInfo(situation);
+    }
+
+    return retval;
   }
 
-  situation.injectInDocument(document);
-  return retval;
+  return trueAutocompletionSolve;
 }
 
 
