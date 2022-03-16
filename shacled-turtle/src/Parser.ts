@@ -5,13 +5,19 @@ import { ns, $quad } from "./namespaces";
 import { TurtleDirectives } from "./autocompletion-solving";
 import * as RDF from "@rdfjs/types";
 
+/** Either null or an RDF/JS term and the contained triples */
 type TriplesReadResult<Term = RDF.Term>
-  = null
-  | { readValue: Term, nestedTriples: RDF.Quad[] };
+  = null | { readValue: Term, nestedTriples: RDF.Quad[] };
 
+/**
+ * Transform a Triples syntax node into a list of triples
+ * @param directives Known directives 
+ * @param editorState The Code Mirror editor content
+ * @param node The syntax node
+ * @returns The list of RDF quads
+ */
 export function triples(
-  known: TurtleDirectives, editorState: EditorState,
-  node: SyntaxNode
+  directives: TurtleDirectives, editorState: EditorState, node: SyntaxNode
 ): RDF.Quad[] {
   const child = node.firstChild;
   if (child === null) return [];
@@ -19,9 +25,9 @@ export function triples(
   let r: TriplesReadResult<RDF.Quad_Subject>;
 
   if (child.type.name === 'Subject' || child.type.name === 'QtSubject') {
-    r = subject(known, editorState, child);
+    r = subject(directives, editorState, child);
   } else if (child.type.name === 'BlankNodePropertyList') {
-    r = blankNodePropertyList(known, editorState, child);
+    r = blankNodePropertyList(directives, editorState, child);
   } else {
     // Unknown child type (probably error type)
     return [];
@@ -32,22 +38,36 @@ export function triples(
   const pol = child.nextSibling;
   if (pol === null) return r.nestedTriples;
 
-  const quadsFromPOL = predicateObjectList(known, editorState, r.readValue, child);
+  const quadsFromPOL = predicateObjectList(directives, editorState, r.readValue, child);
 
   r.nestedTriples.push(...quadsFromPOL);
 
   return r.nestedTriples;
 }
 
-
+/**
+ * Transform a Code Mirror subject node into the corresponding term and a list
+ * of triples to add to the dataset
+ * @param directives The directives
+ * @param editorState The Code Mirror editor content
+ * @param currentNode The syntax node where the subject is
+ * @returns The subject term and the list of RDF triples contained by it
+ */
 export function subject(
-  known: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
+  directives: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
 ): TriplesReadResult<RDF.Quad_Subject> {
-  return object(known, editorState, currentNode) as TriplesReadResult<RDF.Quad_Subject>;
+  return object(directives, editorState, currentNode) as TriplesReadResult<RDF.Quad_Subject>;
 }
 
+/**
+ * Transform a blank node property list into the corresponding term and triples
+ * @param directives The Turtle directives
+ * @param editorState The Code Mirror editor content
+ * @param currentNode The syntax node of the BlankPropertyList
+ * @returns A term for the blank node and the list of contained RDF triples
+ */
 export function blankNodePropertyList(
-  known: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
+  directives: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
 ): TriplesReadResult<RDF.BlankNode> {
   const uniqueName = "_shacledturtle_bn-" + currentNode.from + "~" + currentNode.to
   const self = DataFactory.blankNode(uniqueName);
@@ -57,15 +77,22 @@ export function blankNodePropertyList(
     return { readValue: self, nestedTriples: [] };
   }
 
-  const quads = predicateObjectList(known, editorState, self, polNode);
+  const quads = predicateObjectList(directives, editorState, self, polNode);
   return { readValue: self, nestedTriples: quads };
 }
 
+/**
+ * Transform a text quoted triple into an RDF/JS triple
+ * @param directives The Turtle directives
+ * @param editorState The Code Mirror editor content
+ * @param currentNode The syntax node of the QtTriple
+ * @returns The quoted triple
+ */
 function quotedTriple(
-  known: TurtleDirectives, editorState: EditorState,
+  directives: TurtleDirectives, editorState: EditorState,
   node: SyntaxNode
 ): null | { readValue: RDF.Quad, nestedTriples: [] } {
-  const r = triples(known, editorState, node);
+  const r = triples(directives, editorState, node);
   if (r.length !== 1) {
     if (r.length > 1) {
       console.error("More than one result for Subject QtTriple");
@@ -76,6 +103,12 @@ function quotedTriple(
   return { readValue: r[0], nestedTriples: [] };
 }
 
+/**
+ * Return the object that corresponds to the (nested) rdf list located at the
+ * given objectNode position.
+ * @param objectNode The object node
+ * @returns A blank node
+ */
 export function getCollectionElementNode(objectNode: SyntaxNode): RDF.BlankNode {
   const isUnexpectedStructure = objectNode.type.name !== "Object"
     || objectNode.parent === null || objectNode.parent.type.name !== "Collection";
@@ -92,8 +125,17 @@ export function getCollectionElementNode(objectNode: SyntaxNode): RDF.BlankNode 
   return DataFactory.blankNode(positionalName);
 }
 
+/**
+ * Transform a text collection into an RDF/JS triple and the triples that
+ * describe the collection
+ * @param directives The Turtle directives
+ * @param editorState The Code Mirror editor content
+ * @param currentNode The syntax node of the collection
+ * @returns The node that corresponds to the collection and the list of
+ * triples that describes the collection.
+ */
 function collection(
-  known: TurtleDirectives, editorState: EditorState,
+  directives: TurtleDirectives, editorState: EditorState,
   currentNode: SyntaxNode
 ): TriplesReadResult<RDF.NamedNode | RDF.BlankNode> {
   // Read objects
@@ -102,7 +144,7 @@ function collection(
 
   let child = currentNode.firstChild;
   while (child !== null) {
-    const r = object(known, editorState, child);
+    const r = object(directives, editorState, child);
     if (r === null) break;
 
     objects.push({ syntaxNode: child, value: r.readValue });
@@ -130,8 +172,17 @@ function collection(
   return { readValue: head, nestedTriples: quads };
 }
 
+/**
+ * Transform a predicate object list into a list of triples
+ * @param directives The Turtle directives
+ * @param editorState The Code Mirror editor content
+ * @param subject The RDF/JS term for the subject
+ * @param node The syntax node of the collection
+ * @returns The node that corresponds to the collection and the list of
+ * triples that describes the collection.
+ */
 function predicateObjectList(
-  known: TurtleDirectives, editorState: EditorState,
+  directives: TurtleDirectives, editorState: EditorState,
   subject: RDF.Quad_Subject, node: SyntaxNode    
 ): RDF.Quad[] {
   let production: RDF.Quad[] = [];
@@ -144,7 +195,7 @@ function predicateObjectList(
     if (focus.type.name === "Verb") {
       currentObject = null;
 
-      const r = verb(known, editorState, focus);
+      const r = verb(directives, editorState, focus);
       if (r === null) {
         currentVerb = null;
       } else {
@@ -152,7 +203,7 @@ function predicateObjectList(
         production.push(...r.nestedTriples);
       }
     } else if (focus.type.name === "Object") {
-      const r = object(known, editorState, focus);
+      const r = object(directives, editorState, focus);
       if (r === null) {
         currentObject = null;
       } else {
@@ -167,7 +218,7 @@ function predicateObjectList(
       if (currentVerb === null || currentObject === null) continue;
 
       const quad = $quad(subject, currentVerb, currentObject);
-      production.push(...annotation(known, editorState, focus, quad));
+      production.push(...annotation(directives, editorState, focus, quad));
     } else {
       continue;
     }
@@ -176,8 +227,16 @@ function predicateObjectList(
   return production;
 }
 
+/**
+ * Transform a Code Mirror verb node into the corresponding term and a list
+ * of triples to add to the dataset
+ * @param directives The directives
+ * @param editorState The Code Mirror editor content
+ * @param currentNode The syntax node where the verb is
+ * @returns The verb term and the list of RDF triples contained by it
+ */
 export function verb(
-  known: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
+  directives: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
 ): TriplesReadResult<RDF.NamedNode> {
   const token = editorState.sliceDoc(currentNode.from, currentNode.to);
   if (token === "a") {
@@ -189,37 +248,45 @@ export function verb(
   if (child === null) return null;
 
   if (child.type.name === "IRIREF") {
-    return iriref(known, editorState, child);
+    return iriref(directives, editorState, child);
   } else if (child.type.name === "PrefixedName") {
-    return prefixedName(known, editorState, child);
+    return prefixedName(directives, editorState, child);
   } else {
     return null;
   }
 }
 
+/**
+ * Transform a Code Mirror object node into the corresponding term and a list
+ * of triples to add to the dataset
+ * @param directives The directives
+ * @param editorState The Code Mirror editor content
+ * @param currentNode The syntax node where the object is
+ * @returns The object term and the list of RDF triples contained by it
+ */
 export function object(
-  known: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
+  directives: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
 ): TriplesReadResult<RDF.Quad_Object> {
   const inner = currentNode.firstChild;
   if (inner === null) return null;
 
   switch (inner.type.name) {
     case "IRIREF":
-      return iriref(known, editorState, inner);
+      return iriref(directives, editorState, inner);
     case "PrefixedName":
-      return prefixedName(known, editorState, inner);
+      return prefixedName(directives, editorState, inner);
     case "BlankNode":
       return blankNode(editorState, inner);
     case "BlankNodePropertyList":
-      return blankNodePropertyList(known, editorState, inner);
+      return blankNodePropertyList(directives, editorState, inner);
     case "Anon":
       return anon(inner);
     case "Collection":
-      return collection(known, editorState, inner);
+      return collection(directives, editorState, inner);
     case "QuotedTriple":
-      return quotedTriple(known, editorState, inner);
+      return quotedTriple(directives, editorState, inner);
     case 'RDFLiteral':
-      return rdfLiteral(known, editorState, inner);
+      return rdfLiteral(directives, editorState, inner);
     case 'NumericLiteral':
       return numericLiteral(editorState, inner);
     case 'BooleanLiteral':
@@ -229,14 +296,24 @@ export function object(
   }
 }
 
+/**
+ * Transform a Code Mirror annotation node into the list of triples to add
+ * to the dataset
+ * @param directives The directives
+ * @param editorState The Code Mirror editor content
+ * @param currentNode The syntax node where the object is
+ * @param subject The quad that is annotated
+ * @returns The object term and the list of RDF triples contained by it
+ */
 function annotation(
-  known: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode, subject: RDF.Quad
+  directives: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode, subject: RDF.Quad
 ): RDF.Quad[] {
   const child = currentNode.firstChild;
   if (child === null) return [];
-  return predicateObjectList(known, editorState, subject, child);
+  return predicateObjectList(directives, editorState, subject, child);
 }
 
+/** Transforms an IRIREF node into an RDF/JS term */
 function iriref(
   known: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
 ) {
@@ -247,6 +324,7 @@ function iriref(
   };
 }
 
+/** Transforms a PrefixedName node into an RDF/JS term */
 function prefixedName(
   known: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
 ) {
@@ -283,7 +361,7 @@ function prefixedNameSyntaxNodeToTerm(
   return builder[localNodeText];
 }
 
-
+/** Transforms a BlankNode node into an RDF/JS term */
 function blankNode(
   editorState: EditorState, currentNode: SyntaxNode
 ): TriplesReadResult<RDF.BlankNode> {
@@ -295,11 +373,13 @@ function blankNode(
   return null;
 }
 
+/** Transforms an Anonymous node into an RDF/JS term */
 function anon(currentNode: SyntaxNode): TriplesReadResult<RDF.BlankNode> {
   const uniqueName = "_shacledturtle_anon-" + currentNode.from + "~" + currentNode.to
   return { readValue: DataFactory.blankNode(uniqueName), nestedTriples: [] };
 }
 
+/** Transforms an RDFLiteral node into an RDF/JS term */
 function rdfLiteral(
   known: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
 ) {
@@ -307,6 +387,7 @@ function rdfLiteral(
   return wrapLiteral(DataFactory.literal(token));
 }
 
+/** Transforms a NumericLiteral node into an RDF/JS term */
 function numericLiteral(editorState: EditorState, currentNode: SyntaxNode) {
   const token = editorState.sliceDoc(currentNode.from, currentNode.to);
 
@@ -319,6 +400,7 @@ function numericLiteral(editorState: EditorState, currentNode: SyntaxNode) {
   }
 }
 
+/** Transforms a BooleanLiteral node into an RDF/JS term */
 function booleanLiteral(
   editorState: EditorState, currentNode: SyntaxNode
 ): TriplesReadResult<RDF.Literal> {

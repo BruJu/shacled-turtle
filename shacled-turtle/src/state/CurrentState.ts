@@ -1,8 +1,12 @@
 import * as RDF from "@rdfjs/types";
-import Ontology from "../ontology/OntologyBuilder";
+import Ontology from "../ontology";
 import DoubleDataset from "./DoubleDataset";
 import DoubleMeta from "./DoubleMeta";
 
+/**
+ * The triples of a current state, with all meta information = inferred
+ * types and shapes for all resources in the dataset.
+ */
 export default class CurrentTriples {
   readonly ontology: Ontology;
   readonly dataset: DoubleDataset = new DoubleDataset();

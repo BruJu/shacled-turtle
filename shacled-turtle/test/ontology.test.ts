@@ -1,9 +1,9 @@
 import assert from "assert";
 import MetaDataState from "../src/ontology/MetaDataState";
-import Ontology from "../src/ontology/OntologyBuilder";
-import { loadDataset } from "./utility";
+import Ontology from "../src/ontology";
+import { loadDataset, ns } from "./utility";
 import * as n3 from "n3";
-import { ns, $quad } from "../src/PRECNamespace";
+import { $quad } from "../src/namespaces";
 import * as RDF from "@rdfjs/types";
 
 describe("Ontology", () => {

@@ -1,11 +1,16 @@
-import * as RDF from '@rdfjs/types'
-import { OntologyBuilder } from './OntologyBuilder';
-import { $defaultGraph, ns } from '../namespaces';
 import TermMap from '@rdfjs/term-map';
 import TermSet from '@rdfjs/term-set';
-import { addTermPairInTermMultiMap } from '../util';
+import * as RDF from '@rdfjs/types';
 import { DatasetCore } from '@rdfjs/types';
+import { $defaultGraph, ns } from '../../namespaces';
+import { addTermPairInTermMultiMap } from '../../util';
+import OntologyBuilder from './index';
 
+/**
+ * Adds rules related to RDFS into the ontology
+ * @param builder The ontology builder
+ * @param store The ontology dataset
+ */
 export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore) {
   const propertyHierarchy = new PropertyHierarchy(store);
 

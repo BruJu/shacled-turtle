@@ -1,17 +1,28 @@
-import * as RDF from "@rdfjs/types";
-import TermSet from "@rdfjs/term-set";
-import { ns } from "../namespaces";
 import * as AC from "@bruju/automata-composer";
+import TermSet from "@rdfjs/term-set";
+import * as RDF from "@rdfjs/types";
 import { stringToTerm, termToString } from "rdf-string";
+import { ns } from "../../namespaces";
 
-export default function addPath(
-  pathName: RDF.Term, shapeGraph: RDF.DatasetCore,
-  writer: PathWriter
-) {
-  const composed = decompose(pathName, shapeGraph);
-  if (composed === null) return false;
+/**
+ * Read the path described by `pathName`, transform it into a sequence of
+ * predicate path / inverse predicate path, ending with some empty path to
+ * a unique shape.
+ * @param pathName The name of the path
+ * @param shapeGraph The shape graph
+ * @param writer The object to get terms for the different states of the
+ * automata
+ * @returns The list of the transitions of the automata if the path is valid,
+ * false if the path is invalid.
+ */
+export default function writePath(
+  pathName: RDF.Term, shapeGraph: RDF.DatasetCore, writer: PathWriter
+): RDFAutomataTransition[] | false {
+  // Convert path to finite state automata
+  const composedAutomata = decompose(pathName, shapeGraph);
+  if (composedAutomata === null) return false;
 
-  const fsa = composed.build();
+  const pathAutomata = composedAutomata.build();
 
   let stateIdToTerm = new Map<number, RDF.Term>();
   function getNodeTypeOfStateId(id: number): RDF.Term {
@@ -23,57 +34,86 @@ export default function addPath(
     return r;
   }
 
-  stateIdToTerm.set(fsa.start.id, writer.startType);
+  stateIdToTerm.set(pathAutomata.start.id, writer.startType);
+
+  let transitions: RDFAutomataTransition[] = [];
 
   if (writer.endType !== null) {
-    if (fsa.ends.length === 1) {
-      if (fsa.start.id === fsa.ends[0].id) {
-        writer.addSubshape(writer.startType, writer.endType);
+    if (pathAutomata.ends.length === 1) {
+      if (pathAutomata.start.id === pathAutomata.ends[0].id) {
+        transitions.push({
+          type: "epsilon", from: writer.startType, to: writer.endType
+        });
       } else {
-        stateIdToTerm.set(fsa.ends[0].id, writer.endType);
+        stateIdToTerm.set(pathAutomata.ends[0].id, writer.endType);
       }
     } else {
-      for (const end of fsa.ends) {
+      for (const end of pathAutomata.ends) {
         const node = getNodeTypeOfStateId(end.id);
-        writer.addSubshape(node, writer.endType);
+        transitions.push({
+          type: "epsilon", from: node, to: writer.endType
+        });
       }
     }
   }
 
-  for (const state of fsa.states) {
+  for (const state of pathAutomata.states) {
     const myType = getNodeTypeOfStateId(state.id);
 
     for (const [transition, target] of state.transitions) {
       const hisType = getNodeTypeOfStateId(target.id);
 
       const predicate = stringToTerm(transition.slice(1));
-      const isPlus = transition[0] === "+";
-      writer.addPath(
-        isPlus ? myType : hisType,
-        predicate as RDF.Quad_Predicate,
-        isPlus ? hisType : myType,
-        isPlus ? "subject" : "object"
-      );
+      transitions.push({
+        type: transition[0] as '+' | '-',
+        predicate: predicate as RDF.NamedNode,
+        from: myType,
+        to: hisType
+      });
     }
   }
 
-  return true;
+  return transitions;
 }
 
 export interface PathWriter {
+  /** The type that corresponds to the initial state */
   readonly startType: RDF.Term;
-  readonly endType: RDF.Term | null;
-  generateBlankType(): RDF.BlankNode
   
-  addPath(subjectType: RDF.Term, predicate: RDF.Term, objectType: RDF.Term, knowing: 'subject' | 'object'): void;
-  addSubshape(subshape: RDF.Term, supershape: RDF.Term): void;
+  /**
+   * The type that corresponds to the final state. Returns null if a new blank
+   * type should be generated instead
+   */
+  readonly endType: RDF.Term | null;
+  
+  /** Generates a new blank node for a state */
+  generateBlankType(): RDF.BlankNode
 };
 
+/** A transition in the automata */
+export type RDFAutomataTransition = EpsilonTransition | OutcomingTransition | IncomingTransition;
+
+/** Epsilon transition */
+export type EpsilonTransition = { type: "epsilon", from: RDF.Term, to: RDF.Term };
+
+/** Outcoming path = equivalent to predicate path */
+export type OutcomingTransition = { type: "+", from: RDF.Term, predicate: RDF.NamedNode, to: RDF.Term };
+
+/** Incoming path = equivalent to inverse predicate path */
+export type IncomingTransition = { type: "-", from: RDF.Term, predicate: RDF.NamedNode, to: RDF.Term };
+
+///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Transform the given path into an automata composer
+ * @param pathName The name of the path
+ * @param shapeGraph The shape graph
+ * @returns The automata composer or null if its not a valid path
+ */
 function decompose(
   pathName: RDF.Term, shapeGraph: RDF.DatasetCore
 ): AC.AutomataComposer | null {
   const t = typeOfPathOf(pathName, shapeGraph);
-
   if (t === null) return null;
 
   switch(t.type) {
@@ -125,11 +165,7 @@ function decompose(
   }
 }
 
-
-
-
-///////////////////////////////////////////////////////////////////////////////
-
+/** List of existing kind of paths in SHACL */
 type PathType =
   null
   | { type: "Predicate", predicate: RDF.NamedNode }
@@ -141,6 +177,7 @@ type PathType =
   | { type: "Inverse", pathName: RDF.Term };
 
 
+/** Extract the kind of path of pathName in the given shape graph */
 function typeOfPathOf(
   pathName: RDF.Term,
   shapeGraph: RDF.DatasetCore
@@ -177,7 +214,7 @@ function typeOfPathOf(
   return null;
 }
 
-
+/** Extract the RDF list whose head is target from the dataset */
 function extractList(target: RDF.Term, dataset: RDF.DatasetCore) {
   let explored = new TermSet();
 
@@ -198,4 +235,3 @@ function extractList(target: RDF.Term, dataset: RDF.DatasetCore) {
 
   return result;
 }
-

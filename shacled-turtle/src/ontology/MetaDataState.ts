@@ -1,10 +1,18 @@
 import TermMap from "@rdfjs/term-map";
 import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
-import Ontology from "./OntologyBuilder";
-import { MetaBaseInterface, MetaBaseInterfaceComponent } from "./Ruleset";
+import Ontology from ".";
+import { MetaBaseInterface, MetaBaseInterfaceComponent } from "./MetaDataInterface";
 
+/**
+ * Storage for the metadata of a dataset. Metadata are defined as for each RDF
+ * resource the list of its types and shapes it must conform to.
+ * 
+ * Stores the corresponding ontology to also provide a function to call when
+ * a new triple is added.
+ */
 export default class MetaDataState implements MetaBaseInterface {
+  /** The ontology related to this state */
   private readonly ontology: Ontology;
   readonly types: MetaBaseInterfaceComponent = new MetaDataStateComponent();
   readonly shapes: MetaBaseInterfaceComponent = new MetaDataStateComponent();
@@ -19,6 +27,9 @@ export default class MetaDataState implements MetaBaseInterface {
   }
 }
 
+/**
+ * Basic implementation for `MetaBaseInterfaceComponent` that uses a TermMap.
+ */
 export class MetaDataStateComponent implements MetaBaseInterfaceComponent {
   readonly data: TermMap<RDF.Term, TermSet> = new TermMap();
 

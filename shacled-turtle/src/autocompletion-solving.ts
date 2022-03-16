@@ -6,14 +6,24 @@ import { ns } from "./namespaces";
 import DebugInformation from "./DebugInformation";
 import { tripleAutocompletion } from "./triples-autocompletion";
 
-
+/**
+ * A structure that contains all known turtle directives
+ */
 export type TurtleDirectives = {
+  /** Base URL */
   base: rdfNamespace.NamespaceBuilder<string> | null;
+  /** All prefixes */
   prefixes: {[prefix: string]: rdfNamespace.NamespaceBuilder<string>}
 };
 
 enum TypeOfStatement { Triple, Directive }
 
+/**
+ * Creates an autocompletion extension function for CodeMirror 6 with
+ * SHACLed Turtle engine
+ * @param onDebugInfo Function to call when a debug information object is
+ * created. Optional. Helps to understand the position where the cursor is.
+ */
 export default function autocompletionSolve(
   onDebugInfo?: (debug: DebugInformation) => void
 ) {
@@ -49,7 +59,13 @@ export default function autocompletionSolve(
   return trueAutocompletionSolve;
 }
 
-
+/**
+ * Function called when autocompletion is called for a directive
+ * @param context The Code Mirror context
+ * @param directiveSyntaxNode The syntax node of the current directive
+ * @param currentlyFilledNode The node where the cursor is
+ * @returns The completion result
+ */
 function directiveAutocompletion(
   context: CompletionContext, directiveSyntaxNode: SyntaxNode,
   currentlyFilledNode: SyntaxNode
@@ -86,6 +102,9 @@ function directiveAutocompletion(
 
 ///////////////////////////////////////////////////////////////////////////////
 
+/**
+ * Moves the cursor to the parent of type Triples or Directives
+ */
 function goToTypeOfStatement(cursor: TreeCursor): TypeOfStatement | null {
   const path = cursorGoesTo(cursor, ['Triples', 'Directive']);
   if (!path) return null;
@@ -94,6 +113,12 @@ function goToTypeOfStatement(cursor: TreeCursor): TypeOfStatement | null {
   return null;
 }
 
+/**
+ * Moves the cursor to the parent node of one of the given type
+ * @param cursor The cursor
+ * @param alternatives The list of possible types
+ * @returns True if an alternative has been found, else false
+ */
 function cursorGoesTo(cursor: TreeCursor, alternatives: string[]): boolean {
   while (!alternatives.includes(cursor.type.name)) {
     const hasParent = cursor.parent();

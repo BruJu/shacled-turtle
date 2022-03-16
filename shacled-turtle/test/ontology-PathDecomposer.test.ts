@@ -1,9 +1,8 @@
 import assert from "assert";
 import * as RDF from "@rdfjs/types";
-import { $quad, ns } from "../src/PRECNamespace";
-import { buildAndRunOntology, loadDataset } from "./utility";
+import { buildAndRunOntology, loadDataset, ns } from "./utility";
 import { termToString } from "rdf-string";
-import { MetaBaseInterface } from "../src/ontology/Ruleset";
+import { MetaBaseInterface } from "../src/ontology/MetaDataInterface";
 
 describe("Ontology - Path Decomposer", () => {
   describe("Per equivalence class", () => {

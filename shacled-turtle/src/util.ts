@@ -21,8 +21,7 @@ export function getWithDefaultInTermMultiMap(
 }
 
 export function getWithDefault<V>(
-  map: TermMap<RDF.Term, V>, key: RDF.Term,
-  initializer: () => V
+  map: TermMap<RDF.Term, V>, key: RDF.Term, initializer: () => V
 ) {
   let elem = map.get(key);
   if (elem !== undefined) return elem;
@@ -39,7 +38,9 @@ export function addTermPairInTermMultiMap(
   return map;
 }
 
-export function addInTermMultiMap(source: TermMap<RDF.Term, TermSet>, destination: TermMap<RDF.Term, TermSet>): TermMap<RDF.Term, TermSet> {
+export function addInTermMultiMap(
+  source: TermMap<RDF.Term, TermSet>, destination: TermMap<RDF.Term, TermSet>
+): TermMap<RDF.Term, TermSet> {
   for (const [key, values] of destination) {
     for (const value of values) {
       addTermPairInTermMultiMap(source, key, value);

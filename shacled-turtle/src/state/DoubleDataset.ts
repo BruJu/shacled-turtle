@@ -1,6 +1,14 @@
 import * as RDF from "@rdfjs/types";
 import * as n3 from "n3";
 
+/**
+ * An RDF/JS dataset implementation splitted in two stores: one stable store
+ * and one unstable store.
+ * 
+ * New triples are added to the unstable store. It is possible to clear in
+ * one go the unstable store or transfer all unstable triples into the stable
+ * store.
+ */
 export default class DoubleDataset implements RDF.DatasetCore {
   readonly stable: n3.Store = new n3.Store();
   readonly unstable: n3.Store = new n3.Store();

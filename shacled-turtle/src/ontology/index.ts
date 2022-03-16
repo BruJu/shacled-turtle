@@ -1,8 +1,9 @@
-import * as RDF from '@rdfjs/types';
-import * as n3 from 'n3';
-import MetaDataState from './ontology/MetaDataState';
-import Ontology from './ontology/OntologyBuilder';
-import { Suggestion } from './ontology/Suggestible';
+import * as RDF from "@rdfjs/types";
+import * as n3 from "n3";
+import OntologyBuilder from "./builder";
+import MetaDataState from "./MetaDataState";
+import InferenceDatabase from "./SubDB-Inference";
+import SuggestionDatabase, { Suggestion } from './SubDB-Suggestion';
 
 // Term suggestion database that resorts to a SHACL shape graph.
 
@@ -11,27 +12,34 @@ import { Suggestion } from './ontology/Suggestible';
 //
 // Here, we use the shape graph to power up an autocompletion engine ?
 
-
 /**
+ * A loaded ontology used for autocompletion
+ * 
  * A database used to suggest some terms for auto completion, backed by a SHACL
  * graph.
  */
-export default class SuggestionDatabase {
-  readonly ontology: Ontology;
+export default class Ontology {
+  readonly ruleset: InferenceDatabase;
+  readonly suggestible: SuggestionDatabase;
 
-  constructor(triples: RDF.Quad[]) {
-    const store: RDF.DatasetCore = new n3.Store(triples);
-    this.ontology = Ontology.make(store);
+  constructor(ruleset: InferenceDatabase, suggestible: SuggestionDatabase) {
+    this.ruleset = ruleset;
+    this.suggestible = suggestible;
+  }
 
-    console.log(this.ontology.suggestible);
+  static make(store: RDF.DatasetCore): Ontology {
+    const builder = new OntologyBuilder();
+    builder.addRDFS(store);
+    builder.addSHACL(store);
+    return builder.build();
   }
 
   /**
    * Return every type for which we have some information about the predicate it
    * uses
    */
-  getAllTypes(): Suggestion[] {
-    return this.ontology.suggestible.getTypes();
+   getAllTypes(): Suggestion[] {
+    return this.suggestible.getTypes();
   }
 
   /**
@@ -44,17 +52,16 @@ export default class SuggestionDatabase {
     // currentPredicate: RDF.Term | undefined,
     allTriples: RDF.Quad[]
   ): Suggestion[] {
-    const state = new MetaDataState(this.ontology);
+    const state = new MetaDataState(this);
 
     const store = new n3.Store(allTriples);
     allTriples.forEach(triple => {
-      this.ontology.ruleset.onNewTriple(triple, store, state)
+      this.ruleset.onNewTriple(triple, store, state)
     });
     
-    return this.ontology.suggestible.getAllPathsFor(
+    return this.suggestible.getAllPathsFor(
       state.types.getAll(currentSubject),
       state.shapes.getAll(currentSubject)
     );
   }
 }
-

@@ -36,6 +36,7 @@
     "@rdfjs/term-set": "^1.1.0",
     "@types/rdfjs__term-map": "^1.0.2",
     "@types/rdfjs__term-set": "^1.0.3",
+    "mnemonist": "^0.39.0",
     "n3": "^1.14.0",
     "rdf-string": "^1.6.0"
   },

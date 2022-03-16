@@ -1,8 +1,11 @@
 import * as RDF from "@rdfjs/types";
 import * as n3 from "n3";
 import MetaDataState from "../src/ontology/MetaDataState";
-import Ontology from "../src/ontology/OntologyBuilder";
-import { ns } from "../src/PRECNamespace";
+import Ontology from "../src/ontology";
+import * as baseNamespaces from "../src/namespaces";
+import namespace from '@rdfjs/namespace';
+
+const N3Factory = { factory: n3.DataFactory };
 
 export function loadDataset(content: string): RDF.DatasetCore {
   let prefixesList: string[] = [];
@@ -31,3 +34,8 @@ export function buildAndRunOntology(
 
   return { ontology, metaData };
 }
+
+export const ns = {
+  ...baseNamespaces.ns,
+  ex: namespace("http://example.org/", N3Factory)
+};

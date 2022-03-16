@@ -15,8 +15,8 @@ export const ns = {
 /** The term for the default graph */
 export const $defaultGraph = n3.DataFactory.defaultGraph();
 
-/** Builds a quad but with less letters */
+/** Build a quad but with less letters */
 export const $quad = n3.DataFactory.quad;
 
-/** Builds a variable but with less letters */
+/** Build a variable but with less letters */
 export const $variable = n3.DataFactory.variable;

@@ -1,14 +1,24 @@
-import * as RDF from '@rdfjs/types'
-import { OntologyBuilder } from './OntologyBuilder';
-import { ns, $quad, $defaultGraph } from '../namespaces';
-import * as n3 from 'n3';
 import TermMap from '@rdfjs/term-map';
 import TermSet from '@rdfjs/term-set';
-import Description from './Description';
-import addPath from './PathDecomposer';
+import * as RDF from '@rdfjs/types';
+import * as n3 from 'n3';
+import { $defaultGraph, $quad, ns } from '../../namespaces';
+import Description from '../Description';
+import OntologyBuilder from './index';
+import addPath, { PathWriter } from './PathDecomposer';
 
+/**
+ * Adds rules to the ontology related to SHACL
+ * 
+ * We consider that SHACL can be seen:
+ * - As an inference system -> we infer that some elements must complies with
+ * shapes thanks to sh:targetclass / sh:targetNode / sh:subjectsOf
+ * / sh:objectsOf and by being the sh:node target of a path
+ * - As a suggestion engine -> suggest completion related to possibles paths
+ * and sh:subjectsOf
+ */
 export default function addSHACL(builder: OntologyBuilder, store: RDF.DatasetCore) {
-  let generator = { nextBlankNode: 0 };
+  let generator = new BlankNodeGenerator();
 
   const shapeNameToShape = extractListOfNodeShapes(store);
 
@@ -41,7 +51,7 @@ export default function addSHACL(builder: OntologyBuilder, store: RDF.DatasetCor
       builder.rulesBuilder.shTargetNode(node, shapeName)  
     );
     
-    resolveShape(builder, store, shapeName, generator);
+    readPathsOfShape(builder, store, shapeName, generator);
   }
 }
 
@@ -130,11 +140,17 @@ function extractListOfNodeShapes(shapeGraph: RDF.DatasetCore)
 }
 
 
-
-function resolveShape(
+/**
+ * Read all property path bound to the given shape and 
+ * @param ontoBuilder Builder for the ontology
+ * @param store The RDF/JS dataset
+ * @param shapeName The name of the node shape
+ * @param generator A unique blank node generator
+ */
+function readPathsOfShape(
   ontoBuilder: OntologyBuilder,
   store: RDF.DatasetCore,
-  shapeName: RDF.Term, generator: { nextBlankNode: number }
+  shapeName: RDF.Term, generator: BlankNodeGenerator
 ) {
   for (const { object: property } of store.match(shapeName, ns.sh.property, null, $defaultGraph)) {
     const pathValues = store.match(property, ns.sh.path, null, $defaultGraph);
@@ -149,32 +165,39 @@ function resolveShape(
     const endTypes = store.match(property, ns.sh.node, null, $defaultGraph);
     const endType = endTypes.size === 0 ? null : [...endTypes][0].object;
 
+    const usableNodes: PathWriter = {
+      startType: shapeName, endType: endType,
+      generateBlankType: () => generator.generate()
+    };
+
     for (const pathValueQuad of pathValues) {
-      addPath(
-        pathValueQuad.object, store,
-        {
-          startType: shapeName,
-          endType: endType,
+      const transitions = addPath(pathValueQuad.object, store, usableNodes);
 
-          generateBlankType() {
-            return n3.DataFactory.blankNode("shacledturtle-bn-" + (++generator.nextBlankNode));
-          },
+      if (transitions !== false) {
+        for (const transition of transitions) {
+          if (transition.type === "epsilon") {
+            ontoBuilder.rulesBuilder.shSubShape(transition.from, transition.to);
+          } else {
+            const { from, predicate, to } = transition;
 
-          addPath(subjectType: RDF.Term, predicate: RDF.Term, objectType: RDF.Term, knowing: "subject" | "object") {
-            console.log(subjectType, predicate, objectType, knowing);
-            if (knowing === "subject") {
-              ontoBuilder.rulesBuilder.shPredicatePath(subjectType, predicate, objectType);
-              ontoBuilder.suggestibleBuilder.addShapePath(subjectType, predicate as RDF.NamedNode, pathDescription);
-            } else {
-              ontoBuilder.rulesBuilder.shInversePredicatePath(subjectType, predicate, objectType);
+            if (transition.type === "+") {
+              ontoBuilder.rulesBuilder.shPredicatePath(from, predicate, to);
+              ontoBuilder.suggestibleBuilder.addShapePath(from, predicate, pathDescription);
+            } else if (transition.type === "-") {
+              ontoBuilder.rulesBuilder.shInversePredicatePath(to, predicate, from);
             }
-          },
-
-          addSubshape(subshape: RDF.Term, supershape: RDF.Term) {
-            ontoBuilder.rulesBuilder.shSubShape(subshape, supershape);
           }
         }
-      );
+      }
     }
+  }
+}
+
+
+class BlankNodeGenerator {
+  nextId: number = 0;
+
+  generate() {
+    return n3.DataFactory.blankNode("shacledturtle-bn-" + (++this.nextId));
   }
 }
