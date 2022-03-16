@@ -27,13 +27,13 @@ export default class ContextCodeEditor {
         extensions: [
           basicSetup,
           placeholder("Your context"),
-          st.extension,
+          st.shacledTurtleExtension,
           ...(extensions || [])
         ]
       })
     });
 
-    this.quadsToOntology = st.changeContext;
+    this.quadsToOntology = st.changeOntology;
   }
 
   /**

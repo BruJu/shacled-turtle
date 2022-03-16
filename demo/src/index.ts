@@ -49,4 +49,3 @@ document.getElementById("shape_url_button")
     input.classList.add("is-danger");
   }
 });
-

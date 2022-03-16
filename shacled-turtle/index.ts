@@ -7,19 +7,19 @@ import { changeShaclGraph } from "./src/triples-autocompletion";
 
 export type ShacledTurtle = {
   /** The code mirror extension */
-  extension: Extension;
-  changeContext(triples: RDF.Quad[]): void;
+  shacledTurtleExtension: Extension;
+  changeOntology(triples: RDF.Quad[]): void;
 };
 
 export default function shacledTurtle(
   onDebugInfo?: (debug: DebugInformation) => void
 ): ShacledTurtle {
   return {
-    extension: [
+    shacledTurtleExtension: [
       turtle(),
       autocompletion({ override: [ autocompletionSolve(onDebugInfo) ] }),
     ],
-    changeContext: (triples: RDF.Quad[]) => {
+    changeOntology: (triples: RDF.Quad[]) => {
       changeShaclGraph(triples);
     }
   };

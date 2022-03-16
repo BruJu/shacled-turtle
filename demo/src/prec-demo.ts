@@ -1,7 +1,7 @@
 import * as RDF from '@rdfjs/types';
 import axios from "axios";
 import { Parser } from 'n3';
-import data from './base_pg.json';
+import data from './prec-demo_basepg.json';
 import ContextCodeEditor from './ContextCodeEditor';
 import { ns, boringTypes } from './PRECNamespace';
 import rdfToDot from "./rdf-to-dot";

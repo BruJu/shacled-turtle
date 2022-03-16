@@ -1,14 +1,13 @@
 {
-  "name": "prec-demo-front",
+  "name": "@bruju/prec-demo",
   "version": "0.0.1",
-  "description": "PREC demonstration website front-end",
+  "description": "PREC and Shacled Turtle demonstration website",
   "source": "./src/index.html",
   "scripts": {
-    "start": "npx parcel ./src/prec-demo.html ./src/shacled-turtle.html -p 12345",
-    "build": "npx parcel build ./src/prec-demo.html ./src/shacled-turtle.html --public-url ./ --dist-dir ./dist",
-    "clean": "npx del-cli .parcel-cache/ && npx del-cli dist/",
-    "test": "npx mocha -r ts-node/register test/*.test.ts",
-    "preupdatelang": "npm run clean"
+    "start": "npx parcel ./src/prec-demo.html ./src/index.html -p 12345",
+    "build": "npx parcel build ./src/prec-demo.html ./src/index.html --public-url ./ --dist-dir ./dist",
+    "clean": "npx del-cli ../.parcel-cache/ && npx del-cli dist/",
+    "test": "npx mocha -r ts-node/register test/*.test.ts"
   },
   "repository": {
     "type": "git",

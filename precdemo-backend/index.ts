@@ -12,8 +12,6 @@ async function main() {
 
   // Setup API
 
-  app.use('/res/prec_ontology.ttl', express.static(__dirname + '/prec_ontology.ttl'));
-
   app.post('/rest/transform_graph', (req, res) => {
     try {
       let contextQuads: RDF.Quad[] | undefined = undefined;

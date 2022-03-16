@@ -1,8 +1,8 @@
 {
   "name": "prec-demo",
   "workspaces": [
-    "backend",
-    "frontend",
+    "demo",
+    "precdemo-backend",
     "lang-turtle",
     "shacled-turtle"
   ],
