@@ -66,7 +66,7 @@ TurtleDoc(
  Triples(
   Subject(PrefixedName(PN_PREFIX, PN_LOCAL)),
   Verb(PrefixedName(PN_PREFIX, PN_LOCAL)),
-  Object(RDFLiteral)
+  Object(RDFLiteral(String_literal_quote))
  )
 )
 

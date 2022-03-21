@@ -30,13 +30,13 @@ literal { RDFLiteral | NumericLiteral | BooleanLiteral }                        
 BlankNodePropertyList { '[' predicateObjectList ']' }                           // [14] BlankNodePropertyList 	::= 	'[' predicateObjectList ']'
 Collection { '(' Object * ')' }                                                 // [15] collection ::= '(' object* ')'
 NumericLiteral { integer | decimal | double }                                   // [16]     NumericLiteral  ::=   INTEGER | DECIMAL | DOUBLE
-RDFLiteral { string (langtag | '^^' iri )? }                                    // [128s] 	RDFLiteral 	::= 	String (LANGTAG | '^^' iri)?
+RDFLiteral { string (Langtag | '^^' iri )? }                                    // [128s] 	RDFLiteral 	::= 	String (LANGTAG | '^^' iri)?
 BooleanLiteral { 'true' | 'false' }                                             // [133s]   BooleanLiteral 	::= 	'true' | 'false'
 string {                                                                        // [17] 	String
-  string_literal_quote
-  | string_literal_single_quote
-  | string_literal_long_quote
-  | string_literal_long_single_quote
+  String_literal_quote
+  | String_literal_single_quote
+  | String_literal_long_quote
+  | String_literal_long_single_quote
 }
 iri { IRIREF | PrefixedName }                                                   // [135s] 	iri 	::= 	IRIREF | PrefixedName
 PrefixedName { PN_PREFIX? ':' PN_LOCAL }                                        // [136s] 	PrefixedName 	::= 	PNAME_LN | PNAME_NS
@@ -50,7 +50,7 @@ blanknode_rule { BlankNode | Anon }                                             
   pname_ns { PN_PREFIX? ':' }                                                   // [139s] 	PNAME_NS 	::= 	PN_PREFIX? ':'
   pname_ln { pname_ns PN_LOCAL }                                                // [140s] 	PNAME_LN 	::= 	PNAME_NS PN_LOCAL
   BlankNode { '_:' (pn_chars_u | $[0-9]) ((pn_chars | '.')* pn_chars)? }        // [141s] 	BLANK_NODE_LABEL 	::= 	'_:' (PN_CHARS_U | [0-9]) ((PN_CHARS | '.')* PN_CHARS)?
-  langtag { '@' $[a-zA-Z]+ ( '-' $[a-zA-Z0-9]+ )* }                             // [144s]   LANGTAG  ::= '@' [a-zA-Z]+ ('-' [a-zA-Z0-9]+)*
+  Langtag { '@' $[a-zA-Z]+ ( '-' $[a-zA-Z0-9]+ )* }                             // [144s]   LANGTAG  ::= '@' [a-zA-Z]+ ('-' [a-zA-Z0-9]+)*
   integer { $[+-]? $[0-9]+ }                                                    // [19]     INTEGER  ::=  [+-]? [0-9]+
   decimal { $[+-]? $[0-9]* '.' $[0-9]+ }                                        // [20]     DECIMAL  ::=  [+-]? [0-9]* '.' [0-9]+
   double  {                                                                     // [21]     DOUBLE   ::=  [+-]? ([0-9]+ '.' [0-9]* EXPONENT | '.' [0-9]+ EXPONENT | [0-9]+ EXPONENT)
@@ -58,10 +58,10 @@ blanknode_rule { BlankNode | Anon }                                             
     ($[0-9]+ '.' $[0-9]* exponent | '.' $[0-9]+ exponent | $[0-9]+ exponent)
   }
   exponent { $[eE] $[+-]? $[0-9]+ }                                             // [154s]  EXPONENT  ::= 	[eE] [+-]? [0-9]+
-  string_literal_quote        { '"' (![\u{22}\u{5c}\u{a}\u{d}] | echar | uchar)* '"' } // [22]         STRING_LITERAL_QUOTE    ::=     '"' ([^#x22#x5C#xA#xD] | ECHAR | UCHAR)* '"'
-  string_literal_single_quote { "'" (![\u{27}\u{5c}\u{a}\u{d}] | echar | uchar)* "'" } // [23]         STRING_LITERAL_SINGLE_QUOTE     ::=     "'" ([^#x27#x5C#xA#xD] | ECHAR | UCHAR)* "'"
-  string_literal_long_single_quote { "'''" (("'" | "''")? (!['\\] | echar | uchar))* "'''" } // [24]   STRING_LITERAL_LONG_SINGLE_QUOTE        
-  string_literal_long_quote        { '"""' (('"' | '""')? (!["\\] | echar | uchar))* '"""' } // [25]   STRING_LITERAL_LONG_QUOTE
+  String_literal_quote        { '"' (![\u{22}\u{5c}\u{a}\u{d}] | echar | uchar)* '"' } // [22]         STRING_LITERAL_QUOTE    ::=     '"' ([^#x22#x5C#xA#xD] | ECHAR | UCHAR)* '"'
+  String_literal_single_quote { "'" (![\u{27}\u{5c}\u{a}\u{d}] | echar | uchar)* "'" } // [23]         STRING_LITERAL_SINGLE_QUOTE     ::=     "'" ([^#x27#x5C#xA#xD] | ECHAR | UCHAR)* "'"
+  String_literal_long_single_quote { "'''" (("'" | "''")? (!['\\] | echar | uchar))* "'''" } // [24]   STRING_LITERAL_LONG_SINGLE_QUOTE        
+  String_literal_long_quote        { '"""' (('"' | '""')? (!["\\] | echar | uchar))* '"""' } // [25]   STRING_LITERAL_LONG_QUOTE
   uchar {                                                                       // [26]        UCHAR   ::=     '\u' HEX HEX HEX HEX | '\U' HEX HEX HEX HEX HEX HEX HEX HEX
     '\\u' hex hex hex hex
     | '\\U' hex hex hex hex hex hex hex hex

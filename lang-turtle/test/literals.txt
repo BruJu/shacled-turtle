@@ -11,10 +11,10 @@ TurtleDoc(
   Triples(
     Subject(Anon),
     Verb(IRIREF),
-    Object(RDFLiteral),
-    Object(RDFLiteral),
-    Object(RDFLiteral),
-    Object(RDFLiteral(PrefixedName(PN_PREFIX, PN_LOCAL)))
+    Object(RDFLiteral(String_literal_quote)),
+    Object(RDFLiteral(String_literal_quote, Langtag)),
+    Object(RDFLiteral(String_literal_quote, Langtag)),
+    Object(RDFLiteral(String_literal_quote, PrefixedName(PN_PREFIX, PN_LOCAL)))
   )
 )
 
@@ -46,10 +46,10 @@ TurtleDoc(
 TurtleDoc(
   Triples(
     Subject(Anon), Verb(IRIREF),
-    Object(RDFLiteral),
-    Object(RDFLiteral),
-    Object(RDFLiteral),
-    Object(RDFLiteral),
-    Object(RDFLiteral)
+    Object(RDFLiteral(String_literal_quote)),
+    Object(RDFLiteral(String_literal_single_quote)),
+    Object(RDFLiteral(String_literal_quote)),
+    Object(RDFLiteral(String_literal_single_quote)),
+    Object(RDFLiteral(String_literal_long_quote))
   )
 )
