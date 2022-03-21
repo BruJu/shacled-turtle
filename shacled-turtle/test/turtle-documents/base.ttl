@@ -1,0 +1,5 @@
+<a> <b> <c> .
+
+BASE <http://example.org/>
+
+<a> <b> <c> .

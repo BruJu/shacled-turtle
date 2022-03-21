@@ -105,7 +105,7 @@ function buildDatasetFromScratch(
 
 ////////////////////////////////////////////////////////////////////////////////
 
-function readDirective(known: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode) {
+export function readDirective(known: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode) {
   const child = currentNode.firstChild;
   if (child === null) return;
 

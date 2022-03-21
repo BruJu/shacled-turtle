@@ -3,3 +3,4 @@
 **/dist/
 .vscode/
 **/*.tgz
+**/.nyc_output

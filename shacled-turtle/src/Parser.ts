@@ -316,12 +316,19 @@ function annotation(
 /** Transforms an IRIREF node into an RDF/JS term */
 function iriref(
   known: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
-) {
+): TriplesReadResult<RDF.NamedNode> {
   const token = editorState.sliceDoc(currentNode.from, currentNode.to);
-  return {
-    readValue: DataFactory.namedNode(token.slice(1, token.length - 1)),
-    nestedTriples: []
-  };
+  const url = token.slice(1, token.length - 1);
+  
+  if (known.base === null || isAbsolute(url)) {
+    return { readValue: DataFactory.namedNode(url), nestedTriples: [] }
+  } else {
+    return { readValue: known.base(url), nestedTriples: [] }
+  }
+}
+
+function isAbsolute(url: string): boolean {
+  return url.match("^[a-zA-Z][a-zA-Z0-9+-.]*:") !== null;
 }
 
 /** Transforms a PrefixedName node into an RDF/JS term */
@@ -381,10 +388,34 @@ function anon(currentNode: SyntaxNode): TriplesReadResult<RDF.BlankNode> {
 
 /** Transforms an RDFLiteral node into an RDF/JS term */
 function rdfLiteral(
-  known: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
+  directives: TurtleDirectives, editorState: EditorState, currentNode: SyntaxNode
 ) {
-  const token = editorState.sliceDoc(currentNode.from, currentNode.to);
-  return wrapLiteral(DataFactory.literal(token));
+  const literalValueSyntaxNode = currentNode.firstChild;
+  if (literalValueSyntaxNode === null) return null;
+  const literalValuePart = editorState.sliceDoc(literalValueSyntaxNode.from + 1, literalValueSyntaxNode.to - 1);
+
+  const followedBy = literalValueSyntaxNode.nextSibling;
+
+  if (followedBy === null) {
+    return wrapLiteral(DataFactory.literal(literalValuePart));
+  }
+
+  if (followedBy.type.name === "Langtag") {
+    const langtag = editorState.sliceDoc(followedBy.from + 1, followedBy.to);
+    return wrapLiteral(DataFactory.literal(literalValuePart, langtag));
+  } else {
+    let datatype: RDF.NamedNode | undefined = undefined;
+
+    if (followedBy.type.name === "IRIREF") {
+      datatype = iriref(directives, editorState, followedBy)?.readValue;
+    } else if (followedBy.type.name === "PrefixedName") {
+      datatype = prefixedName(directives, editorState, followedBy)?.readValue;
+    }
+
+    if (datatype === undefined) return null;
+
+    return wrapLiteral(DataFactory.literal(literalValuePart, datatype));
+  }
 }
 
 /** Transforms a NumericLiteral node into an RDF/JS term */
