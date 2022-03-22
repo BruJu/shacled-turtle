@@ -2,7 +2,7 @@ import * as assert from "assert";
 import * as fs from "fs";
 import * as path from "path";
 import * as n3 from "n3";
-import { isomorphic } from "rdf-isomorphic";
+import checkIsomorphsm from "@bruju/rdf-test-util";
 import parseFullDocument from "../src/FullParser";
 
 describe("Parsing compare", () => {
@@ -16,7 +16,8 @@ describe("Parsing compare", () => {
       const byN3 = new n3.Parser().parse(documentText);
       const byST = parseFullDocument(documentText);
 
-      assert.ok(isomorphic(byN3, byST));
+      const r = checkIsomorphsm(byST, byN3);
+      assert.ok(r.areIsomorphic, r.text);
     });
   }
 });

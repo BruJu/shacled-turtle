@@ -41,27 +41,4 @@ export default class Ontology {
    getAllTypes(): Suggestion[] {
     return this.suggestible.getTypes();
   }
-
-  /**
-   * Return the list of all known possible predicates for a type
-   * @param type The type
-   * @returns All possible predicates
-   */
-  getAllRelevantPathsOfType(
-    currentSubject: RDF.Term,
-    // currentPredicate: RDF.Term | undefined,
-    allTriples: RDF.Quad[]
-  ): Suggestion[] {
-    const state = new MetaDataState(this);
-
-    const store = new n3.Store(allTriples);
-    allTriples.forEach(triple => {
-      this.ruleset.onNewTriple(triple, store, state)
-    });
-    
-    return this.suggestible.getAllPathsFor(
-      state.types.getAll(currentSubject),
-      state.shapes.getAll(currentSubject)
-    );
-  }
 }

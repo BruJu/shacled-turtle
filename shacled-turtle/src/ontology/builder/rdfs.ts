@@ -4,6 +4,7 @@ import * as RDF from '@rdfjs/types';
 import { DatasetCore } from '@rdfjs/types';
 import { $defaultGraph, ns } from '../../namespaces';
 import { addTermPairInTermMultiMap } from '../../util';
+import Description from '../Description';
 import OntologyBuilder from './index';
 
 /**
@@ -29,6 +30,10 @@ export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore
 
     builder.suggestibleBuilder.addExistingType(
       quad.object, OntologyBuilder.descriptionOf(store, quad.object)
+    );
+
+    builder.suggestibleBuilder.addTypePath(
+      quad.object, quad.subject as RDF.NamedNode, new Description()
     );
   }
 
