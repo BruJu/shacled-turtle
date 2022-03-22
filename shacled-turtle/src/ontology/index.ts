@@ -31,6 +31,7 @@ export default class Ontology {
     const builder = new OntologyBuilder();
     builder.addRDFS(store);
     builder.addSHACL(store);
+    builder.addMisc(store);
     return builder.build();
   }
 

@@ -97,6 +97,23 @@ describe("Suggestion of predicates", () => {
     ]
   );
 
+  generateUnitTest(
+    'empty.ttl',
+    'onto-domainIncludes.ttl',
+    [
+      { on: ns.ex.tintin, expect: [] },
+      { on: ns.ex.snowy, expect: [] },
+      { addQuad: $quad(ns.ex.tintin, ns.rdf.type, ns.ex.Person) },
+      { on: ns.ex.tintin, expect: [ns.ex.knows] },
+      { addQuad: $quad(ns.ex.tintin, ns.rdf.type, ns.ex.snowy) },
+      { on: ns.ex.snowy, expect: [] },
+
+
+
+    ]
+    
+  )
+
 
 
 
