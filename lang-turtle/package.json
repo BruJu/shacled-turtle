@@ -1,7 +1,13 @@
 {
   "name": "@bruju/lang-turtle",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "description": "Turtle language support for CodeMirror",
+  "author": "Julian Bruyat <julian.bruyat@insa-lyon.fr>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BruJu/shacled-turtle",
+    "directory": "lang-turtle"
+  },
   "scripts": {
     "test": "mocha test/test.js",
     "prepare": "rollup -c",

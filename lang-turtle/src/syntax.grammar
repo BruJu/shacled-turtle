@@ -48,7 +48,7 @@ blanknode_rule { BlankNode | Anon }                                             
 
   IRIREF { '<' (![\u{00}-\u{20}<>"{}|^`\\] /* | UCHAR */ )* '>' }               // [18] 	IRIREF 	::= 	'<' ([^#x00-#x20<>"{}|^`\] | UCHAR)* '>'
   pname_ns { PN_PREFIX? ':' }                                                   // [139s] 	PNAME_NS 	::= 	PN_PREFIX? ':'
-  pname_ln { pname_ns PN_LOCAL }                                                // [140s] 	PNAME_LN 	::= 	PNAME_NS PN_LOCAL
+//  pname_ln { pname_ns PN_LOCAL }                                                // [140s] 	PNAME_LN 	::= 	PNAME_NS PN_LOCAL
   BlankNode { '_:' (pn_chars_u | $[0-9]) ((pn_chars | '.')* pn_chars)? }        // [141s] 	BLANK_NODE_LABEL 	::= 	'_:' (PN_CHARS_U | [0-9]) ((PN_CHARS | '.')* PN_CHARS)?
   Langtag { '@' $[a-zA-Z]+ ( '-' $[a-zA-Z0-9]+ )* }                             // [144s]   LANGTAG  ::= '@' [a-zA-Z]+ ('-' [a-zA-Z0-9]+)*
   integer { $[+-]? $[0-9]+ }                                                    // [19]     INTEGER  ::=  [+-]? [0-9]+
@@ -67,7 +67,7 @@ blanknode_rule { BlankNode | Anon }                                             
     | '\\U' hex hex hex hex hex hex hex hex
   }
   echar { '\\' $[tbnrf"'\\] }                                                   // [159s]      ECHAR   ::=     '\' [tbnrf"'\]
-  ws { '\u{20}' | '\u{9}' | '\u{D}' | '\u{A}' }                                 // [161s]      WS      ::=     #x20 | #x9 | #xD | #xA
+  space { '\u{20}' | '\u{9}' | '\u{D}' | '\u{A}' }                                 // [161s]      WS      ::=     #x20 | #x9 | #xD | #xA
 
 
   
@@ -90,22 +90,15 @@ blanknode_rule { BlankNode | Anon }                                             
 
   LineComment { "#" ![\n]* }
 
-  space { $[ \t\n\r]+ }
-
   PN_LOCAL { $[a-zA-Z0-9_]+ }
 
   PN_PREFIX { $[a-zA-Z] pn_chars_base* }
-
-  
-
 
   Anon { '[' space? ']' }                                                       // [162s] 	ANON 	::= 	'[' WS* ']'
 
   // TODO: case insensitive tokens
   base_token { "BASE" | "base" }
   prefix_token { "PREFIX" | "prefix" }
-
-  
 }
 
 @detectDelim

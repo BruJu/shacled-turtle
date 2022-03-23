@@ -11,7 +11,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/BruJu/PREC-demo.git"
+    "url": "https://github.com/BruJu/shacled-turtle",
+    "directory": "demo"
   },
   "author": "Julian Bruyat <julian.bruyat@insa-lyon.fr>",
   "license": "MIT",
@@ -47,6 +48,6 @@
     "n3": "^1.12.2",
     "prec": "^0.0.1",
     "rdf-string": "^1.6.0",
-    "shacled-turtle": "*"
+    "shacled-turtle": "^0.0.1"
   }
 }

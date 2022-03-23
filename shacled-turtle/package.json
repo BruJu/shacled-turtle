@@ -15,6 +15,11 @@
     "code mirror",
     "autocompletion"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BruJu/shacled-turtle",
+    "directory": "shacled-turtle"
+  },
   "author": "Julian Bruyat <julian.bruyat@insa-lyon.fr>",
   "license": "MIT",
   "devDependencies": {
@@ -31,7 +36,7 @@
   },
   "dependencies": {
     "@bruju/automata-composer": "^1.0.0",
-    "@bruju/lang-turtle": "*",
+    "@bruju/lang-turtle": "^0.0.1",
     "@codemirror/autocomplete": "^0.19.14",
     "@codemirror/language": "^0.19.8",
     "@lezer/common": "^0.15.11",

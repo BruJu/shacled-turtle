@@ -8,5 +8,9 @@
   ],
   "devDependencies": {
     "process": "^0.11.10"
+  },
+  "dependencies": {
+    "@bruju/lang-turtle": "*",
+    "shacled-turtle": "*"
   }
 }
