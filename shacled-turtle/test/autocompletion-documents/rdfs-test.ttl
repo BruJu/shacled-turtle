@@ -1,0 +1,22 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ex: <http://example.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> . 
+@prefix schema: <http://schema.org/> .
+
+# Ok
+ex:ok schema:domainIncludes ex:Ok .
+
+
+# Subclass
+ex:SubClass rdfs:subClassOf ex:Ok .
+
+
+# Sub property + domain/range
+ex:father rdfs:subPropertyOf ex:parent .
+
+ex:parent rdfs:range ex:Ranged .
+ex:parent rdfs:domain ex:Domained .
+
+ex:domainedOk schema:domainIncludes ex:Domained .
+ex:rangedOk schema:domainIncludes ex:Ranged .

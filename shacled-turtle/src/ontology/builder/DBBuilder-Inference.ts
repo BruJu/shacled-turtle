@@ -55,8 +55,8 @@ export default class InferenceDBBuilder {
     return this;
   }
 
-  shTargetNode(subject: RDF.Term, object: RDF.Term): this {
-    this.rules.push(this.producer.shTargetNode(subject, object));
+  shTargetNode(shape: RDF.Term, node: RDF.Term): this {
+    this.rules.push(this.producer.shTargetNode(shape, node));
     return this;
   }
 
@@ -130,9 +130,9 @@ class RuleProducer {
     };
   }
 
-  shTargetNode(subject: RDF.Term, object: RDF.Term): Rule {
+  shTargetNode(shape: RDF.Term, node: RDF.Term): Rule {
     return {
-      production: $quad(subject, ns.sh.targetNode, object)
+      production: $quad(shape, ns.sh.targetNode, node)
     };
   }
 

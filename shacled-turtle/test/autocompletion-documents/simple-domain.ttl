@@ -5,4 +5,6 @@
 
 ex:firstname rdfs:domain ex:Named .
 
-ex:color rdfs:domain ex:Colored .
+ex:Colored a rdfs:Class ;
+  sh:targetSubjectsOf ex:color .
+

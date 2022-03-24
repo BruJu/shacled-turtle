@@ -4,6 +4,11 @@ import * as RDF from "@rdfjs/types";
 import { stringToTerm, termToString } from "rdf-string";
 import { ns } from "../../namespaces";
 
+// TODO: decide what to do when the a path is invalid. Currently, we return
+// false and Shacled-Turtle silently ignores the fact that the path was invalid.
+// Codelines that correspond to this are currently removed from coverage
+// computation
+
 /**
  * Read the path described by `pathName`, transform it into a sequence of
  * predicate path / inverse predicate path, ending with some empty path to
@@ -20,6 +25,7 @@ export default function writePath(
 ): RDFAutomataTransition[] | false {
   // Convert path to finite state automata
   const composedAutomata = decompose(pathName, shapeGraph);
+  /* istanbul ignore if */
   if (composedAutomata === null) return false;
 
   const pathAutomata = composedAutomata.build();
@@ -39,21 +45,11 @@ export default function writePath(
   let transitions: RDFAutomataTransition[] = [];
 
   if (writer.endType !== null) {
-    if (pathAutomata.ends.length === 1) {
-      if (pathAutomata.start.id === pathAutomata.ends[0].id) {
-        transitions.push({
-          type: "epsilon", from: writer.startType, to: writer.endType
-        });
-      } else {
-        stateIdToTerm.set(pathAutomata.ends[0].id, writer.endType);
-      }
-    } else {
-      for (const end of pathAutomata.ends) {
-        const node = getNodeTypeOfStateId(end.id);
-        transitions.push({
-          type: "epsilon", from: node, to: writer.endType
-        });
-      }
+    for (const end of pathAutomata.ends) {
+      const node = getNodeTypeOfStateId(end.id);
+      transitions.push({
+        type: "epsilon", from: node, to: writer.endType
+      });
     }
   }
 
@@ -114,6 +110,7 @@ function decompose(
   pathName: RDF.Term, shapeGraph: RDF.DatasetCore
 ): AC.AutomataComposer | null {
   const t = typeOfPathOf(pathName, shapeGraph);
+  /* istanbul ignore if */
   if (t === null) return null;
 
   switch(t.type) {
@@ -121,6 +118,7 @@ function decompose(
       return AC.unit("+" + termToString(t.predicate));
     case "Inverse": {
       const original = decompose(t.pathName, shapeGraph);
+      /* istanbul ignore if */
       if (original === null) return null;
       return AC.modifyTransitions(original,
         symbol => {
@@ -131,6 +129,7 @@ function decompose(
     }
     case "Alternative": {
       const paths = t.pathsName.map(name => decompose(name, shapeGraph));
+      /* istanbul ignore if */
       if (paths.includes(null)) return null;
 
       const paths_ = paths as AC.AutomataComposer[];
@@ -142,25 +141,30 @@ function decompose(
     }
     case "Sequence": {
       const paths = t.pathsName.map(name => decompose(name, shapeGraph));
+      /* istanbul ignore if */
       if (paths.includes(null)) return null;
       return AC.chain(...paths as AC.AutomataComposer[]);
     }
     case "ZeroOrOne": {
       const original = decompose(t.pathName, shapeGraph);
+      /* istanbul ignore if */
       if (original === null) return null;
       return AC.maybe(original);
     }
     case "OneOrMore": {
       const original = decompose(t.pathName, shapeGraph);
+      /* istanbul ignore if */
       if (original === null) return null;
       return AC.plus(original);
     }
     case "ZeroOrMore": {
       const original = decompose(t.pathName, shapeGraph);
+      /* istanbul ignore if */
       if (original === null) return null;
       return AC.star(original);
     }
     default:
+      /* istanbul ignore next */
       return null;
   }
 }
@@ -194,6 +198,7 @@ function typeOfPathOf(
 
     if (theQuad.predicate.equals(ns.sh.alternativePath)) {
       const alternativeList = extractList(theQuad.object, shapeGraph);
+      /* istanbul ignore if */
       if (alternativeList === null) return null;
       return { type: "Alternative", pathsName: alternativeList };
     } else if (theQuad.predicate.equals(ns.sh.inversePath)) {
@@ -211,6 +216,7 @@ function typeOfPathOf(
     return { type: "Predicate", predicate: pathName };
   }
 
+  /* istanbul ignore next */
   return null;
 }
 

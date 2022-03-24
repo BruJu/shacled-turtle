@@ -1,0 +1,43 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ex: <http://example.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> . 
+@prefix schema: <http://schema.org/> .
+
+
+ex:node01 ex:a ex:target1regular .
+ex:target1inverse ex:a ex:node01 .
+ex:node01 ex:b ex:target1bad .
+
+
+ex:node02 ex:a ex:target2regular .
+ex:target2inverse ex:a ex:node02 .
+ex:target2bad ex:b ex:node02 .
+
+
+ex:node03 ex:a ex:target3regular .
+ex:target3inverse ex:a ex:node03 .
+ex:node03 ex:b ex:target3bad .
+
+
+ex:node04 ex:a ex:target4 .
+
+ex:node05 ex:a ex:target5 .
+
+ex:node06 ex:a ex:target6_1 .
+ex:target6_1 ex:b ex:target6_2 .
+ex:target6_3 ex:c ex:target6_2 .
+
+ex:node08 ex:a ex:target8 .
+
+ex:node09 ex:b ex:target9 .
+
+ex:node10 ex:a ex:target10_one .
+ex:node10 ex:a [ ex:a [ ex:a [ ex:a ex:target10_mult ] ] ] .
+
+ex:node11 ex:a ex:target11_one .
+ex:node11 ex:a [ ex:a [ ex:a [ ex:a ex:target11_mult ] ] ] .
+
+ex:node12 ex:a ex:target12_one .
+ex:node12 ex:a [ ex:a [ ex:a [ ex:a ex:target12_mult ] ] ] .
+

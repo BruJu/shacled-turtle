@@ -1,11 +1,8 @@
-import TermMap from '@rdfjs/term-map';
-import TermSet from '@rdfjs/term-set';
 import * as RDF from '@rdfjs/types';
-import { DatasetCore } from '@rdfjs/types';
-import { $defaultGraph, ns } from '../../namespaces';
-import { addTermPairInTermMultiMap } from '../../util';
+import { ns } from '../../namespaces';
 import Description from '../Description';
 import OntologyBuilder from './index';
+import PropertyHierarchy from './PropertyHierarchy';
 
 /**
  * Adds rules related to RDFS into the ontology
@@ -18,7 +15,7 @@ export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore
   builder.rulesBuilder.rdfType();
 
   for (const quad of store.match(null, ns.rdfs.domain, null)) {
-    propertyHierarchy.forEachTermAndItsSuperProperties(
+    propertyHierarchy.forAllSubOf(
       quad.subject,
       property => {
         builder.rulesBuilder.rdfsDomain(property, quad.object);
@@ -38,7 +35,7 @@ export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore
   }
 
   for (const quad of store.match(null, ns.rdfs.range, null)) {
-    propertyHierarchy.forEachTermAndItsSuperProperties(
+    propertyHierarchy.forAllSubOf(
       quad.subject,
       property => builder.rulesBuilder.rdfsRange(property, quad.object)
     );
@@ -56,62 +53,5 @@ export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore
     builder.suggestibleBuilder.addExistingType(
       quad.object, OntologyBuilder.descriptionOf(store, quad.subject)
     );
-  }
-}
-
-class PropertyHierarchy {
-  private readonly propertyToSuperProperties: TermMap<RDF.Term, TermSet>;
-
-  constructor(store: DatasetCore) {
-    this.propertyToSuperProperties = new TermMap();
-
-    for (const quad of store.match(null, ns.rdfs.subPropertyOf, null, $defaultGraph)) {
-      addTermPairInTermMultiMap(this.propertyToSuperProperties, quad.subject, quad.object);
-    }
-  
-    PropertyHierarchy.transitiveClosure(this.propertyToSuperProperties);
-
-    for (const [property, superProperty] of this.propertyToSuperProperties) {
-      superProperty.add(property);
-    }
-  }
-
-  static transitiveClosure(map: TermMap<RDF.Term, TermSet>) {
-    const reverseMap = new TermMap<RDF.Term, TermSet>();
-  
-    for (const [subProperty, superProperties] of map) {
-      superProperties.forEach(superProperty =>
-        addTermPairInTermMultiMap(reverseMap, superProperty, subProperty)
-      );
-    }
-  
-    let stable = false;
-    while (!stable) {
-      stable = true;
-      for (const [me, subProperties] of reverseMap) {
-        const superProperties = map.get(me);
-        if (superProperties === undefined) continue;
-  
-        for (const subProperty of subProperties) {
-          const subSuper = map.get(subProperty)!;
-  
-          const before = subSuper.size;
-  
-          superProperties.forEach(superProperty => subSuper.add(superProperty));
-  
-          const after = subSuper.size;
-          if (before !== after) stable = false;
-        }
-      }
-    }
-  }
-
-  forEachTermAndItsSuperProperties(property: RDF.Term, consumer: (term: RDF.Term) => void) {
-    const superProperties = this.propertyToSuperProperties.get(property);
-    if (superProperties !== undefined) {
-      superProperties.forEach(consumer);
-    } else {
-      consumer(property);
-    }
   }
 }

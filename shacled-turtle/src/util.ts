@@ -3,25 +3,15 @@ import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
 
 /**
- * Get the set at the given key
+ * Get the value at key in the given map. If no value is found, adds a default
+ * value to the map and return it.
  * @param map The map
  * @param key The key
- * @returns The set at map[key]. If none is present, a new one is
- * created and returned.
+ * @param initializer A generator for the default value
+ * @returns The value in the map at location key
  */
-export function getWithDefaultInTermMultiMap(
-  map: TermMap<RDF.Term, TermSet>, key: RDF.Term
-): TermSet {
-  let set = map.get(key);
-  if (set !== undefined) return set;
-
-  set = new TermSet();
-  map.set(key, set);
-  return set;
-}
-
-export function getWithDefault<V>(
-  map: TermMap<RDF.Term, V>, key: RDF.Term, initializer: () => V
+export function getWithDefault<K, V>(
+  map: Map<K, V>, key: K, initializer: () => V
 ) {
   let elem = map.get(key);
   if (elem !== undefined) return elem;
@@ -31,21 +21,19 @@ export function getWithDefault<V>(
   return elem;
 }
 
+/**
+ * Adds the given value in the set located at map[key]. If no sets are present,
+ * adds one.
+ * @param map The multimap
+ * @param key The key
+ * @param value The value
+ * @returns map
+ */
 export function addTermPairInTermMultiMap(
   map: TermMap<RDF.Term, TermSet>, key: RDF.Term, value: RDF.Term
-) {
-  getWithDefaultInTermMultiMap(map, key).add(value);
+): TermMap<RDF.Term, TermSet> {
+  getWithDefault(map, key, newTermSet).add(value);
   return map;
 }
 
-export function addInTermMultiMap(
-  source: TermMap<RDF.Term, TermSet>, destination: TermMap<RDF.Term, TermSet>
-): TermMap<RDF.Term, TermSet> {
-  for (const [key, values] of destination) {
-    for (const value of values) {
-      addTermPairInTermMultiMap(source, key, value);
-    }
-  }
-
-  return source;
-}
+function newTermSet() { return new TermSet(); }

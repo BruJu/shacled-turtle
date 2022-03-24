@@ -54,7 +54,7 @@ export default function addSHACL(builder: OntologyBuilder, store: RDF.DatasetCor
     }
 
     shape.target.node.forEach(node =>
-      builder.rulesBuilder.shTargetNode(node, shapeName)  
+      builder.rulesBuilder.shTargetNode(shapeName, node)  
     );
     
     readPathsOfShape(builder, store, shapeName, generator);

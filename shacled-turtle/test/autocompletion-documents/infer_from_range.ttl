@@ -1,0 +1,14 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ex: <http://example.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> . 
+@prefix schema: <http://schema.org/> .
+
+ex:rdfs1 rdfs:range ex:Targetted .
+ex:rdfs2 schema:domainIncludes ex:Targetted .
+
+ex:shaclShape a sh:NodeShape ;
+  sh:targetNode ex:node ;
+  sh:targetClass ex:Shape ;
+  sh:targetObjectsOf ex:shacl1 ;
+  sh:property [ sh:path ex:shacl2 ] .

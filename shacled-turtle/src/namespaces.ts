@@ -8,7 +8,6 @@ export const ns = {
   rdf : namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#", N3Factory),
   rdfs: namespace("http://www.w3.org/2000/01/rdf-schema#"      , N3Factory),
   xsd : namespace("http://www.w3.org/2001/XMLSchema#"          , N3Factory),
-  pgo : namespace("http://ii.uwb.edu.pl/pgo#"                  , N3Factory),
   sh  : namespace("http://www.w3.org/ns/shacl#"                , N3Factory)
 };
 

@@ -1,0 +1,104 @@
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix ex: <http://example.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> . 
+@prefix schema: <http://schema.org/> .
+
+ex:Target a sh:NodeShape ; sh:property [ sh:path ex:ok ] .
+
+# Predicate Path
+sh:Pathed01 a sh:NodeShape ;
+  sh:targetNode ex:node01 ;
+  sh:property [
+    sh:path ex:a ;
+    sh:node ex:Target
+  ] .
+
+# Inverse Path
+sh:Pathed02 a sh:NodeShape ;
+  sh:targetNode ex:node02 ;
+  sh:property [
+    sh:path [ sh:inversePath ex:a ] ;
+    sh:node ex:Target
+  ] .
+
+# Inverse inverse path
+sh:Pathed03 a sh:NodeShape ;
+  sh:targetNode ex:node03 ;
+  sh:property [
+    sh:path [ sh:inversePath [ sh:inversePath ex:a ] ] ;
+    sh:node ex:Target
+  ] .
+
+# Sequence Path (Empty)
+sh:Pathed04 a sh:NodeShape ;
+  sh:targetNode ex:node04 ;
+  sh:property [
+    sh:path () ;
+    sh:node ex:Target
+  ] .
+
+# Sequence Path (one)
+sh:Pathed05 a sh:NodeShape ;
+  sh:targetNode ex:node05 ;
+  sh:property [
+    sh:path ( ex:a ) ;
+    sh:node ex:Target
+  ] .
+
+# Sequence Path (Multiple)
+sh:Pathed06 a sh:NodeShape ;
+  sh:targetNode ex:node06 ;
+  sh:property [
+    sh:path ( ex:a ex:b [ sh:inversePath ex:c ] ) ;
+    sh:node ex:Target
+  ] .
+
+# Alternate Path (empty)
+sh:Pathed07 a sh:NodeShape ;
+  sh:targetNode ex:node07 ;
+  sh:property [
+    sh:path [ sh:alternativePath ( ) ] ;
+    sh:node ex:Target
+  ] .
+
+# Alternate Path (one)
+sh:Pathed08 a sh:NodeShape ;
+  sh:targetNode ex:node08 ;
+  sh:property [
+    sh:path [ sh:alternativePath ( ex:a ) ] ;
+    sh:node ex:Target
+  ] .
+
+# Alternate Path (several)
+sh:Pathed09 a sh:NodeShape ;
+  sh:targetNode ex:node09 ;
+  sh:property [
+    sh:path [ sh:alternativePath ( ex:a ex:b ex:c ) ] ;
+    sh:node ex:Target
+  ] .
+
+# Zero or more Path
+sh:Pathed10 a sh:NodeShape ;
+  sh:targetNode ex:node10 ;
+  sh:property [
+    sh:path [ sh:zeroOrMorePath ex:a ] ;
+    sh:node ex:Target
+  ] .
+
+# One or more Path
+sh:Pathed11 a sh:NodeShape ;
+  sh:targetNode ex:node11 ;
+  sh:property [
+    sh:path [ sh:oneOrMorePath ex:a ] ;
+    sh:node ex:Target
+  ] .
+
+# Zero or one Path
+sh:Pathed12 a sh:NodeShape ;
+  sh:targetNode ex:node12 ;
+  sh:property [
+    sh:path [ sh:zeroOrOnePath ex:a ] ;
+    sh:node ex:Target
+  ] .
+
