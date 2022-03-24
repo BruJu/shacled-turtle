@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Shacled Turtle - Two Editors</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+  </head>
+
+  <body>
+    <div class="columns">
+      <div class="column">
+        <div class="container content section">
+          <div class="field is-grouped">
+            <p class="control is-expanded">
+              <input class="input" type="text" placeholder="Shape graph URL" id="shape_url_1">
+            </p>
+            <p class="control">
+              <a class="button is-info" id="shape_url_button_1">
+                Change Shape Graph
+              </a>
+            </p>
+          </div>
+
+          <div id="editor1"></div>
+        </div>
+      </div>
+      <div class="column">
+        <div class="container content section">
+          <div class="field is-grouped">
+            <p class="control is-expanded">
+              <input class="input" type="text" placeholder="Shape graph URL" id="shape_url_2">
+            </p>
+            <p class="control">
+              <a class="button is-info" id="shape_url_button_2">
+                Change Shape Graph
+              </a>
+            </p>
+          </div>
+
+          <div id="editor2"></div>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="two-editors.ts"></script>
+  </body>
+</html>

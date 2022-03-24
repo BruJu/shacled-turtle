@@ -1,6 +1,8 @@
 import { EditorView } from "@codemirror/view";
-import ContextCodeEditor from "./ContextCodeEditor";
 import { PREC_SHAPE_GRAPH_LINK } from "./things";
+import makeFlexibleTurtleEditor from "./ShacledTurtleEditor-Flexible";
+import { DebugInformation } from "shacled-turtle";
+import { termToString } from "rdf-string";
 
 const theme = EditorView.theme({
   "&": { height: "600px" },
@@ -8,44 +10,49 @@ const theme = EditorView.theme({
   ".cm-content, .cm-gutter": { minHeight: "600px" }
 });
 
+function injectDebugInfoInDocument(debugInfo: DebugInformation) {
+  const pathEl = document.getElementById('current_path');
+  if (pathEl === null) return;
   
-const ctxEditor = new ContextCodeEditor(
-  document.getElementById("editor")!, [theme]
-);
+  const subjectEl = document.getElementById('current_subject')!;
+  const typesEl = document.getElementById('current_subject_types')!;
 
-ctxEditor.changeOntology(PREC_SHAPE_GRAPH_LINK);
+  pathEl.innerHTML = "";
+  subjectEl.innerHTML = "";
+  typesEl.innerHTML = "";
+
+  pathEl.appendChild(document.createTextNode(debugInfo.hierarchy));
+
+  let subjectDisplay: string;
+  let typesText: string;
+  if (debugInfo.subject !== null) {
+    subjectDisplay = debugInfo.subject.text;
+    subjectDisplay += " -> " + termToString(debugInfo.subject.term);
+
+    typesText = "Types=["
+      + debugInfo.subject.types.map(term => termToString(term)).join(", ") + "]"
+      + " Shapes=["
+      + debugInfo.subject.shapes.map(term => termToString(term)).join(", ") + "]";
+  } else {
+    subjectDisplay = "No subject";
+    typesText = "";
+  }
+
+  subjectEl.appendChild(document.createTextNode(subjectDisplay));  
+  typesEl.appendChild(document.createTextNode(typesText));
+}
+
+
+makeFlexibleTurtleEditor(
+  document.getElementById("editor")!,
+  document.getElementById("shape_url")! as HTMLInputElement,
+  document.getElementById("shape_url_button")! as HTMLButtonElement,
+  PREC_SHAPE_GRAPH_LINK,
+  [theme],
+  {
+    onDebugInfo: injectDebugInfoInDocument
+  }
+);
 
 document.getElementById("prec_shacl_graph")!
 .setAttribute("href", PREC_SHAPE_GRAPH_LINK)
-
-const input = document.getElementById("shape_url") as HTMLInputElement | null;
-
-if (input !== null) {
-  input.value = PREC_SHAPE_GRAPH_LINK;
-
-  input.addEventListener('change', () => {
-    input.classList.remove("is-success");
-    input.classList.remove("is-danger");
-  });
-}
-
-document.getElementById("shape_url_button")
-?.addEventListener('click', async () => {
-  if (input === null) return;
-
-  const button = document.getElementById("shape_url_button")! as HTMLButtonElement;
-
-  if (button.classList.contains("is-loading")) return;
-  button.classList.add("is-loading");
-  input.classList.remove("is-success");
-  input.classList.remove("is-danger");
-
-  const res = await ctxEditor.changeOntology(input.value);
-  button.classList.remove("is-loading");
-
-  if (res) {
-    input.classList.add("is-success");
-  } else {
-    input.classList.add("is-danger");
-  }
-});

@@ -11,16 +11,14 @@ You can use this extension like any other Code Mirror 6 extension.
 import { basicSetup } from "@codemirror/basic-setup";
 import { EditorState } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import shacledTurtle from "shacled-turtle";
+import { shacledTurtle, changeOntology } from "shacled-turtle";
 import * as n3 from "n3";
 
-const { shacledTurtleExtension, changeOntology } = shacledTurtle();
-
-new EditorView({
+const editor = new EditorView({
   parent: parent,
   state: EditorState.create({
     doc: document.getElementById("editorparent")!,
-    extensions: [basicSetup, shacledTurtleExtension]
+    extensions: [basicSetup, shacledTurtle]
   })
 });
 
@@ -38,7 +36,7 @@ const shapeGraph = `
     sh:property [ sh:path s:name ] .
 `;
 
-changeOntology(new n3.Parser().parse(shapeGraph));
+changeOntology(editor.state, new n3.Parser().parse(shapeGraph));
 ```
 
 On the code editor, copy the prefixes

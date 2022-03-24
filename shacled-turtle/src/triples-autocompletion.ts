@@ -1,4 +1,3 @@
-import * as n3 from 'n3';
 import { termToString } from 'rdf-string';
 import { Completion, CompletionContext, CompletionResult } from '@codemirror/autocomplete';
 import { EditorState } from '@codemirror/state';
@@ -14,17 +13,7 @@ import Description from './ontology/Description';
 import { Suggestion } from './ontology/SubDB-Suggestion';
 import * as STParser from './Parser';
 import CurrentTriples from './state/CurrentState';
-
-let suggestions: Ontology | null = null;
-
-export function changeShaclGraph(triples: RDF.Quad[]): boolean {
-  try {
-    suggestions = Ontology.make(new n3.Store(triples));
-    return true;
-  } catch (err) {
-    return false;
-  }
-}
+import ontologyField from './StateField-CurrentOntology';
 
 export function tripleAutocompletion(
   compCtx: CompletionContext,
@@ -36,7 +25,9 @@ export function tripleAutocompletion(
 
   if (word === null) return null;
 
-  if (suggestions === null) return null;
+  const suggestionsF = compCtx.state.field(ontologyField, false);
+  if (suggestionsF === undefined) return null;
+  const suggestions = suggestionsF.onto;
 
   const { current, directives } = buildDatasetFromScratch(compCtx.state, tree.topNode, suggestions);
 
