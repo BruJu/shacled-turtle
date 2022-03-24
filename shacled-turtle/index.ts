@@ -12,17 +12,21 @@ export type ShacledTurtle = {
 };
 
 export default function shacledTurtle(
-  onDebugInfo?: (debug: DebugInformation) => void
+  options: ShacledTurtleOptions = {}
 ): ShacledTurtle {
   return {
     shacledTurtleExtension: [
       turtle(),
-      autocompletion({ override: [ autocompletionSolve(onDebugInfo) ] }),
+      autocompletion({ override: [ autocompletionSolve(options?.onDebugInfo) ] }),
     ],
     changeOntology: (triples: RDF.Quad[]) => {
       changeShaclGraph(triples);
     }
   };
+}
+
+export type ShacledTurtleOptions = {
+  onDebugInfo?: (debug: DebugInformation) => void
 }
 
 import DebugInformation from "./src/DebugInformation";

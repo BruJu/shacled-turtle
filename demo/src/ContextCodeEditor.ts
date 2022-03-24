@@ -18,7 +18,9 @@ export default class ContextCodeEditor {
 
   /** Mount the code editor inside the given parent */
   constructor(parent: Element, extensions?: Extension[]) {
-    const st = shacledTurtle(injectDebugInfoInDocument);
+    const st = shacledTurtle({
+      onDebugInfo: injectDebugInfoInDocument
+    });
 
     this.view = new EditorView({
       parent: parent,
