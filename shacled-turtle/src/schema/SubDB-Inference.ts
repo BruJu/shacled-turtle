@@ -59,7 +59,7 @@ export default class InferenceDatabase {
 
   /**
    * Build an inference database = a structure that contains all rules for a
-   * given ontology to deduce the list of all (new) types and shapes of all
+   * given schema to deduce the list of all (new) types and shapes of all
    * resources when a new triple is added
    * @param logicRules The list of logic rules
    */
@@ -103,7 +103,7 @@ export default class InferenceDatabase {
   
   /**
    * Completes the metaBase the list of known types and shapes, according to
-   * the known ruleset / ontology, considering that newTriple has just been
+   * the current ruleset / schema, considering that newTriple has just been
    * added.
    * 
    * This function triggers all rules that can use newTriple as a starting

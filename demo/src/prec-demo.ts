@@ -21,7 +21,7 @@ class PrecDemo {
     this._pgTextArea.value = JSON.stringify(data, null, 2);
 
     this._contextWriter = new ContextCodeEditor(document.getElementById('context_div')!);
-    this._contextWriter.changeOntology(PREC_SHAPE_GRAPH_LINK);
+    this._contextWriter.changeSchema(PREC_SHAPE_GRAPH_LINK);
 
     // Buttons
     this._showBoringCheckbox = getHtmlElement<HTMLInputElement>("show_boring_types")!;

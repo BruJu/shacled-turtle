@@ -1,25 +1,25 @@
+import * as RDF from "@rdfjs/types";
 import assert from "assert";
-import MetaDataState from "../src/ontology/MetaDataState";
-import Ontology from "../src/ontology";
-import { loadDataset, ns } from "./utility";
 import * as n3 from "n3";
 import { $quad } from "../src/namespaces";
-import * as RDF from "@rdfjs/types";
+import Schema from "../src/schema";
+import MetaDataState from "../src/schema/MetaDataState";
+import { loadDataset, ns } from "./utility";
 
-describe("Ontology", () => {
+describe("Schema", () => {
   describe("Basic RDFS ontology", () => {
     const parentOntology = loadDataset(`
       ex:parent rdfs:domain ex:Child .
       ex:parent rdfs:range ex:Parent .
     `);
 
-    const ontology = Ontology.make(parentOntology);
+    const schema = Schema.make(parentOntology);
 
     it('should be able to build the ontologty', () => {
-      assert.ok(ontology !== null && ontology !== undefined);
+      assert.ok(schema !== null && schema !== undefined);
     });
 
-    const meta = new MetaDataState(ontology);
+    const meta = new MetaDataState(schema);
 
     const data = new n3.Store();
 
@@ -43,8 +43,5 @@ describe("Ontology", () => {
       assert.equal(meta.types.getAll(ns.ex.toto).size, 1);
       assert.ok([...meta.types.getAll(ns.ex.toto)][0].equals(ns.ex.Child));
     });
-  
-
   });
 });
-

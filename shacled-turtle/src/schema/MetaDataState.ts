@@ -1,29 +1,29 @@
 import TermMap from "@rdfjs/term-map";
 import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
-import Ontology from ".";
+import Schema from ".";
 import { MetaBaseInterface, MetaBaseInterfaceComponent } from "./MetaDataInterface";
 
 /**
  * Storage for the metadata of a dataset. Metadata are defined as for each RDF
  * resource the list of its types and shapes it must conform to.
  * 
- * Stores the corresponding ontology to also provide a function to call when
+ * Stores the corresponding schema to also provide a function to call when
  * a new triple is added.
  */
 export default class MetaDataState implements MetaBaseInterface {
-  /** The ontology related to this state */
-  private readonly ontology: Ontology;
+  /** The schema related to this state */
+  private readonly schema: Schema;
   readonly types: MetaBaseInterfaceComponent = new MetaDataStateComponent();
   readonly shapes: MetaBaseInterfaceComponent = new MetaDataStateComponent();
 
-  constructor(ontology: Ontology) {
-    this.ontology = ontology;
-    ontology.ruleset.addAxioms(this);
+  constructor(schema: Schema) {
+    this.schema = schema;
+    schema.ruleset.addAxioms(this);
   }
   
   onNewTriple(quad: RDF.Quad, data: RDF.DatasetCore) {
-    this.ontology.ruleset.onNewTriple(quad, data, this);
+    this.schema.ruleset.onNewTriple(quad, data, this);
   }
 }
 

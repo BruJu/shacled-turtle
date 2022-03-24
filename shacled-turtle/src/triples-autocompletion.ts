@@ -8,12 +8,13 @@ import { TurtleDirectives } from './autocompletion-solving';
 import { localize, SVO } from './localize';
 import DebugInformation from './DebugInformation';
 import { ns } from './namespaces';
-import Ontology from './ontology';
-import Description from './ontology/Description';
-import { Suggestion } from './ontology/SubDB-Suggestion';
+import Schema from './schema';
+import Description from './schema/Description';
+import { Suggestion } from './schema/SubDB-Suggestion';
 import * as STParser from './Parser';
 import CurrentTriples from './state/CurrentState';
-import ontologyField from './StateField-CurrentOntology';
+import shacledTurtleField from './StateField';
+
 
 export function tripleAutocompletion(
   compCtx: CompletionContext,
@@ -25,9 +26,9 @@ export function tripleAutocompletion(
 
   if (word === null) return null;
 
-  const suggestionsF = compCtx.state.field(ontologyField, false);
-  if (suggestionsF === undefined) return null;
-  const suggestions = suggestionsF.onto;
+  const stState = compCtx.state.field(shacledTurtleField, false);
+  if (stState === undefined) return null;
+  const suggestions = stState.schema;
 
   const { current, directives } = buildDatasetFromScratch(compCtx.state, tree.topNode, suggestions);
 
@@ -71,9 +72,9 @@ export function tripleAutocompletion(
 }
 
 function buildDatasetFromScratch(
-  editorState: EditorState, tree: SyntaxNode, ontology: Ontology
+  editorState: EditorState, tree: SyntaxNode, schema: Schema
 ): { current: CurrentTriples, directives: TurtleDirectives } {
-  const currentTriples = new CurrentTriples(ontology);
+  const currentTriples = new CurrentTriples(schema);
   let directives: TurtleDirectives = { base: null, prefixes: {} };
 
   let child = tree.firstChild;

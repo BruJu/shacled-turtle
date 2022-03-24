@@ -18,7 +18,7 @@ export default function makeFlexibleTurtleEditor(
     urlTextBox.value = "";
   } else {
     urlTextBox.value = defaultShape;
-    editor.changeOntology(defaultShape);
+    editor.changeSchema(defaultShape);
   }
 
   // Add listeners
@@ -33,7 +33,7 @@ export default function makeFlexibleTurtleEditor(
     validationButton.classList.remove("is-success");
     validationButton.classList.remove("is-danger");
   
-    const res = await editor.changeOntology(urlTextBox.value);
+    const res = await editor.changeSchema(urlTextBox.value);
     validationButton.classList.remove("is-loading");
   
     if (res) {

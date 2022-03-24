@@ -19,7 +19,7 @@ This repository also provides a basic demonstration of
 - [demo](demo) is the folder for the demonstration. It currently contains two
 demos:
   - The *index* demo with a code editor. You are able to test the autocompletion
-  and modify the ontology graph
+  and modify the schema graph
   - The *prec-demo* demo that provides a GUI for PREC context. This page
   requires the *precdemo-backend* to be started.
 
@@ -27,7 +27,10 @@ demos:
 Mirror. It only provide syntactic coloration
 
 - [shacled-turtle](shacled-turtle) is a Code Mirror extension that provides both
-Turtle language support and an autocompletion engine.
+Turtle language support and an autocompletion engine based on a schema graph.
+
+- [precdemo-backend](precdemo-backend) is the backend for the "PREc demonstration"
+demo
 
 
 ## License

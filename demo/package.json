@@ -4,8 +4,8 @@
   "description": "PREC and Shacled Turtle demonstration website",
   "source": "./src/index.html",
   "scripts": {
-    "start": "npx parcel ./src/prec-demo.html ./src/index.html ./src/two-editors.html -p 12345",
-    "build": "npx parcel build ./src/prec-demo.html ./src/index.html ./src/two-editors.html --public-url ./ --dist-dir ./dist",
+    "start": "npx parcel ./src/prec-demo.html ./src/index.html ./src/two-editors.html ./src/st-readme-example.html -p 12345",
+    "build": "npx parcel build ./src/prec-demo.html ./src/index.html ./src/two-editors.html ./src/st-readme-example.html --public-url ./ --dist-dir ./dist",
     "clean": "npx del-cli ../.parcel-cache/ && npx del-cli dist/",
     "test": "npx mocha -r ts-node/register test/*.test.ts"
   },

@@ -1,15 +1,15 @@
 import assert from "assert";
 import * as RDF from "@rdfjs/types";
-import { buildAndRunOntology, loadDataset, ns } from "./utility";
+import { buildAndRunSchema, loadDataset, ns } from "./utility";
 import { termToString } from "rdf-string";
-import { MetaBaseInterface } from "../src/ontology/MetaDataInterface";
+import { MetaBaseInterface } from "../src/schema/MetaDataInterface";
 
-describe("Ontology - Path Decomposer", () => {
+describe("Schema - Path Decomposer", () => {
   describe("Per equivalence class", () => {
     function oneTest(
       testName: string,
       dataGraphStr: string,
-      ontologyGraphStr: string,
+      schemaGraphStr: string,
       equivalenceClasses: Array<Array<RDF.Term>>
     ) {
       function buildKey(base: MetaBaseInterface, term: RDF.Term): string {
@@ -23,7 +23,7 @@ describe("Ontology - Path Decomposer", () => {
       }
 
       it(testName, () => {
-        const metaData = run(dataGraphStr, ontologyGraphStr);
+        const metaData = run(dataGraphStr, schemaGraphStr);
 
         let alreadyUsedKeys = new Map<string, RDF.Term>();
         
@@ -155,9 +155,9 @@ describe("Ontology - Path Decomposer", () => {
 
 });
 
-function run(dataStr: string, ontologyStr: string) {
+function run(dataStr: string, schemaStr: string) {
   const dataGraph = loadDataset(dataStr);
-  const ontologyGraph = loadDataset(ontologyStr);
-  const { metaData } = buildAndRunOntology(dataGraph, ontologyGraph);
+  const schemaGraph = loadDataset(schemaStr);
+  const { metaData } = buildAndRunSchema(dataGraph, schemaGraph);
   return metaData;
 }

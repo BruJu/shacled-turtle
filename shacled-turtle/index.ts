@@ -2,21 +2,20 @@ import { turtle } from "@bruju/lang-turtle";
 import { Extension } from "@codemirror/state";
 import { autocompletion } from "@codemirror/autocomplete";
 import autocompletionSolve from "./src/autocompletion-solving";
-import ontologyField, { changeOntology } from "./src/StateField-CurrentOntology";
-export { changeOntology }
+import shacledTurtleField, { changeSchema } from "./src/StateField";
+export { changeSchema }
 
 /**
  * The Shacled Turtle extension. It provides:
  * - Turtle syntaxic coloration
- * - The ability to provide autocompletion suggestion based on an ontology
- * graph.
+ * - The ability to provide autocompletion suggestion based on an schema graph.
  * 
- * The ontology graph must be loaded by calling 
- * `changeOntology(view.state, theOntologyTriples)`
- * with `view` the EditorView of your CodeMirror editor and `theOntologyTriples`
- * a list of RDF/JS quads in the default graph that describes your ontology.
+ * The schema graph must be loaded by calling 
+ * `changeSchema(view.state, theSchemaTriples)`
+ * with `view` the EditorView of your CodeMirror editor and `theSchemaTriples`
+ * a list of RDF/JS quads in the default graph that describes your schema.
  * 
- * Ontology can be written by using RDFS, SHACL, schema:domainIncludes or a mix
+ * Schema can be written by using RDFS, SHACL, schema:domainIncludes or a mix
  * of these.
  */
 export default function shacledTurtle(
@@ -24,7 +23,7 @@ export default function shacledTurtle(
 ): Extension {
   return [
     turtle(),
-    ontologyField.extension,
+    shacledTurtleField.extension,
     autocompletion({ override: [ autocompletionSolve(options?.onDebugInfo) ] }),
   ];
 }
@@ -32,6 +31,7 @@ export default function shacledTurtle(
 export { shacledTurtle };
 
 export type ShacledTurtleOptions = {
+  /** Function called when debug information are changed */
   onDebugInfo?: (debug: DebugInformation) => void
 }
 

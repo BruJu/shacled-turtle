@@ -1,8 +1,8 @@
 import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
-import Ontology from "../src/ontology";
-import { MetaBaseInterface } from "../src/ontology/MetaDataInterface";
-import MetaDataState from "../src/ontology/MetaDataState";
+import Schema from "../src/schema";
+import { MetaBaseInterface } from "../src/schema/MetaDataInterface";
+import MetaDataState from "../src/schema/MetaDataState";
 import { assertSame, ns, rdfTermToString } from "./utility";
 import * as fs from "fs";
 import * as path from "path";
@@ -15,7 +15,7 @@ const $lit = n3.DataFactory.literal;
 
 class GraphCache {
   readonly pathToGraph = new Map<string, RDF.DatasetCore>();
-  readonly pathToOntology = new Map<string, Ontology>();
+  readonly pathToSchema = new Map<string, Schema>();
 
   constructor(folder: string) {
     const root = path.join(__dirname, folder);
@@ -23,8 +23,11 @@ class GraphCache {
     for (const file of fs.readdirSync(root)) {
       if (file.endsWith(".ttl")) {
         const content = fs.readFileSync(path.join(root, file), "utf8");
+
+        // With Shacled Turtle Parser
         this.pathToGraph.set(file, new n3.Store(parseFullDocument(content)));
 
+        // With n3's Parser
         // this.pathToGraph.set(file, new n3.Store(new n3.Parser().parse(content)));
       }
     }
@@ -36,13 +39,13 @@ class GraphCache {
     return new n3.Store([...x]);
   }
 
-  getOntology(path: string): Ontology {
-    let ontology = this.pathToOntology.get(path);
-    if (ontology === undefined) {
-      ontology = Ontology.make(this.getGraph(path));
-      this.pathToOntology.set(path, ontology);
+  getSchema(path: string): Schema {
+    let schema = this.pathToSchema.get(path);
+    if (schema === undefined) {
+      schema = Schema.make(this.getGraph(path));
+      this.pathToSchema.set(path, schema);
     }
-    return ontology;
+    return schema;
   }
 }
 
@@ -52,21 +55,21 @@ describe("Suggestion of predicates", () => {
 
   function generateUnitTest(
     graphName: string,
-    ontologyName: string,
+    schemaName: string,
     operations: Operation[]
   ): void {
-    it(graphName + " x " + ontologyName, () => {
+    it(graphName + " x " + schemaName, () => {
       const data = graphs.getGraph(graphName);
-      const ontology = graphs.getOntology(ontologyName);
-      const meta = computeMeta(data, ontology);
+      const schema = graphs.getSchema(schemaName);
+      const meta = computeMeta(data, schema);
 
       for (let i = 0; i != operations.length; ++i) {
         const op = operations[i];
         if ('addQuad' in op) {
           data.add(op.addQuad);
-          ontology.ruleset.onNewTriple(op.addQuad, data, meta);
+          schema.ruleset.onNewTriple(op.addQuad, data, meta);
         } else {
-          const suggested = getSuggestedPredicates(meta, ontology, op.on);
+          const suggested = getSuggestedPredicates(meta, schema, op.on);
           assertSame(
             suggested, op.expect,
             `Step #${i + 1} ; ${rdfTermToString(op.on)} `
@@ -101,7 +104,7 @@ describe("Suggestion of predicates", () => {
 
   generateUnitTest(
     'empty.ttl',
-    'onto-domainIncludes.ttl',
+    'schema-domainIncludes.ttl',
     [
       { on: ns.ex.tintin, expect: [] },
       { on: ns.ex.snowy, expect: [] },
@@ -155,7 +158,7 @@ describe("Suggestion of predicates", () => {
 
   generateUnitTest(
     'paths-data.ttl',
-    'paths-ontology.ttl',
+    'paths-schema.ttl',
 
     [
       { on: ex.totally_not_here, expect: [] },
@@ -221,8 +224,8 @@ type Operation =
 
 
 
-function computeMeta(dataGraph: RDF.DatasetCore, ontology: Ontology): MetaBaseInterface {
-  const meta = new MetaDataState(ontology);
+function computeMeta(dataGraph: RDF.DatasetCore, schema: Schema): MetaBaseInterface {
+  const meta = new MetaDataState(schema);
   for (const quad of dataGraph) {
     meta.onNewTriple(quad, dataGraph);
   }
@@ -230,10 +233,10 @@ function computeMeta(dataGraph: RDF.DatasetCore, ontology: Ontology): MetaBaseIn
 }
 
 function getSuggestedPredicates(
-  meta: MetaBaseInterface, ontology: Ontology,
+  meta: MetaBaseInterface, schema: Schema,
   subject: RDF.Quad_Subject
 ): TermSet<RDF.Term> {
-  return new TermSet(ontology.suggestible.getAllPathsFor(
+  return new TermSet(schema.suggestible.getAllPathsFor(
     meta.types.getAll(subject),
     meta.shapes.getAll(subject)
   ).map(suggestion => suggestion.term));

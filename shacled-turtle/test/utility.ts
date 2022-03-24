@@ -1,7 +1,7 @@
 import * as RDF from "@rdfjs/types";
 import * as n3 from "n3";
-import MetaDataState from "../src/ontology/MetaDataState";
-import Ontology from "../src/ontology";
+import MetaDataState from "../src/schema/MetaDataState";
+import Schema from "../src/schema";
 import * as baseNamespaces from "../src/namespaces";
 import namespace from '@rdfjs/namespace';
 import TermSet from "@rdfjs/term-set";
@@ -24,18 +24,18 @@ export function loadDataset(content: string): RDF.DatasetCore {
   return new n3.Store(quads);
 }
 
-export function buildAndRunOntology(
-  data: RDF.DatasetCore,
-  ontologyGraph: RDF.DatasetCore
-) {
-  const ontology = Ontology.make(ontologyGraph);
-  const metaData = new MetaDataState(ontology);
+export function buildAndRunSchema(
+  dataGraph: RDF.DatasetCore,
+  schemaGraph: RDF.DatasetCore
+): { schema: Schema, metaData: MetaDataState } {
+  const schema = Schema.make(schemaGraph);
+  const metaData = new MetaDataState(schema);
 
-  for (const triple of data) {
-    metaData.onNewTriple(triple, data);
+  for (const triple of dataGraph) {
+    metaData.onNewTriple(triple, dataGraph);
   }
 
-  return { ontology, metaData };
+  return { schema, metaData };
 }
 
 export const ns = {

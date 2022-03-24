@@ -1,7 +1,7 @@
 import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
-import { MetaBaseInterface, MetaBaseInterfaceComponent } from "../ontology/MetaDataInterface";
-import { MetaDataStateComponent } from "../ontology/MetaDataState";
+import { MetaBaseInterface, MetaBaseInterfaceComponent } from "../schema/MetaDataInterface";
+import { MetaDataStateComponent } from "../schema/MetaDataState";
 
 /**
  * A meta base implementation that uses two different storage: one unstable and

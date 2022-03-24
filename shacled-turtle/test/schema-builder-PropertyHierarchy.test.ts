@@ -1,4 +1,4 @@
-import PropertyHierarchy from "../src/ontology/builder/PropertyHierarchy";
+import PropertyHierarchy from "../src/schema/builder/PropertyHierarchy";
 import * as RDF from "@rdfjs/types";
 import * as n3 from "n3";
 import { assertSame, ns, rdfTermToString } from "./utility";

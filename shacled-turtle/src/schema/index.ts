@@ -1,7 +1,5 @@
 import * as RDF from "@rdfjs/types";
-import * as n3 from "n3";
-import OntologyBuilder from "./builder";
-import MetaDataState from "./MetaDataState";
+import SchemaBuilder from "./builder";
 import InferenceDatabase from "./SubDB-Inference";
 import SuggestionDatabase, { Suggestion } from './SubDB-Suggestion';
 
@@ -13,12 +11,9 @@ import SuggestionDatabase, { Suggestion } from './SubDB-Suggestion';
 // Here, we use the shape graph to power up an autocompletion engine ?
 
 /**
- * A loaded ontology used for autocompletion
- * 
- * A database used to suggest some terms for auto completion, backed by a SHACL
- * graph.
+ * A loaded schema used for autocompletion.
  */
-export default class Ontology {
+export default class Schema {
   readonly ruleset: InferenceDatabase;
   readonly suggestible: SuggestionDatabase;
 
@@ -27,17 +22,24 @@ export default class Ontology {
     this.suggestible = suggestible;
   }
 
-  static make(store: RDF.DatasetCore): Ontology {
-    const builder = new OntologyBuilder();
-    builder.addRDFS(store);
-    builder.addSHACL(store);
-    builder.addMisc(store);
+  /**
+   * Build a Shacled Turtle Schema instance from an RDF/JS dataset with the
+   * schema triples.
+   * @param schemaDataset The triples of the schema
+   * @returns The Shacled Turtle schema instance.
+   */
+  static make(schemaDataset: RDF.DatasetCore): Schema {
+    const builder = new SchemaBuilder();
+    builder.addRDFS(schemaDataset);
+    builder.addSHACL(schemaDataset);
+    builder.addMisc(schemaDataset);
     return builder.build();
   }
 
   /**
    * Return every type for which we have some information about the predicate it
-   * uses
+   * uses = types for which we will be able to suggest some predicates for their
+   * instances.
    */
    getAllTypes(): Suggestion[] {
     return this.suggestible.getTypes();
