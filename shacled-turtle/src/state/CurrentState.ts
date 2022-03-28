@@ -16,6 +16,7 @@ export default class CurrentTriples {
 
   constructor(schema: Schema) {
     this.schema = schema;
+    this.schema.ruleset.addAxioms(this.meta);
   }
 
   add(triple: RDF.Quad): void {
