@@ -113,6 +113,19 @@ TurtleDoc(
  )
 )
 
+# Anon blank node with multiple spaces
+
+[    ] :knows :alice .
+==>
+TurtleDoc(
+ Triples(
+  Subject(Anon),
+  Verb(PrefixedName(PN_LOCAL)),
+  Object(PrefixedName(PN_LOCAL))
+ )
+)
+
+
 # Blank node property list without tail
 
 [ :knows :alice ] .

@@ -17,3 +17,27 @@ TurtleDoc(
  Triples(Subject(PrefixedName(PN_LOCAL)), Verb, Object(IRIREF))
 )
 
+
+# Sparql prefix
+
+prefix foaf: <http://xmlns.com/foaf/0.1/>
+
+==>
+
+TurtleDoc(
+ Directive(SparqlPrefix(PN_PREFIX, IRIREF)),
+)
+
+# More prefixes
+
+prefix : <http://xmlns.com/foaf/0.1/>
+@prefix foaf: <http://xmlns.com/foaf/0.1/> .
+@prefix : <http://xmlns.com/foaf/0.1/> .
+
+==>
+
+TurtleDoc(
+ Directive(SparqlPrefix(IRIREF)),
+ Directive(PrefixID(PN_PREFIX, IRIREF)),
+ Directive(PrefixID(IRIREF)),
+)
