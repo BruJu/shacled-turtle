@@ -36,7 +36,7 @@
   },
   "dependencies": {
     "@bruju/automata-composer": "^1.0.0",
-    "@bruju/lang-turtle": "^0.0.1",
+    "@bruju/lang-turtle": "^0.0.2",
     "@codemirror/autocomplete": "^0.19.14",
     "@codemirror/language": "^0.19.8",
     "@lezer/common": "^0.15.11",
