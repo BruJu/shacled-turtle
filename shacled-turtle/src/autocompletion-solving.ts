@@ -5,6 +5,8 @@ import rdfNamespace from '@rdfjs/namespace';
 import { ns } from "./namespaces";
 import DebugInformation from "./DebugInformation";
 import { tripleAutocompletion } from "./triples-autocompletion";
+import { ShacledTurtleOptions } from "..";
+import ExistingPrefixes from "./existing-prefixes";
 
 /**
  * A structure that contains all known turtle directives
@@ -24,9 +26,12 @@ enum TypeOfStatement { Triple, Directive }
  * @param onDebugInfo Function to call when a debug information object is
  * created. Optional. Helps to understand the position where the cursor is.
  */
-export default function autocompletionSolve(
-  onDebugInfo?: (debug: DebugInformation) => void
-) {
+export default function autocompletionSolve(options: ShacledTurtleOptions) {
+  const prefixes = new ExistingPrefixes();
+  if (options.usePrefixCC !== false) {
+    prefixes.load();
+  }
+
   function trueAutocompletionSolve(context: CompletionContext)
   : null | CompletionResult {
     const tree = syntaxTree(context.state);
@@ -43,14 +48,14 @@ export default function autocompletionSolve(
     let retval: CompletionResult | null = null;
     if (typeOfStatement === TypeOfStatement.Directive) {
       situation.autoCompletionType = 'directive';
-      retval = directiveAutocompletion(context, cursor.node, theNode);
+      retval = directiveAutocompletion(context, cursor.node, theNode, prefixes);
     } else if (typeOfStatement === TypeOfStatement.Triple) {
       situation.autoCompletionType = 'triples';
       retval = tripleAutocompletion(context, tree, theNode, situation);
     }
 
-    if (onDebugInfo !== undefined) {
-      onDebugInfo(situation);
+    if (options.onDebugInfo !== undefined) {
+      options.onDebugInfo(situation);
     }
 
     return retval;
@@ -68,7 +73,7 @@ export default function autocompletionSolve(
  */
 function directiveAutocompletion(
   context: CompletionContext, directiveSyntaxNode: SyntaxNode,
-  currentlyFilledNode: SyntaxNode
+  currentlyFilledNode: SyntaxNode, prefixes: ExistingPrefixes
 ): CompletionResult | null {
   const firstChild = directiveSyntaxNode.firstChild;
   if (firstChild === null) return null;
@@ -82,20 +87,20 @@ function directiveAutocompletion(
 
   const text = context.state.sliceDoc(prefix.from, prefix.to);
 
-  const pair = Object.entries(ns).find(([prefix, _]) => prefix === text);
-  if (pair === undefined) return null;
-
+  const correspondingurl = prefixes.getUrlForPrefix(text);
+  if (correspondingurl === null) return null;
 
   const word = context.matchBefore(/[a-zA-Z"'0-9_+-/<>:\\]*/);
   if (word === null) return null;
+  if (word.from <= prefix.to) return null;
 
-  if (!cursorGoesTo(currentlyFilledNode.cursor, ["IRIREF"])) return null;
+  if (!word.text.startsWith("<")) return null;
 
   return {
     from: word.from,
     filter: false,
     options: [
-      { label: '<' + pair[1][''].value + '>' }
+      { label: '<' + correspondingurl.value + '>' }
     ]
   };
 }

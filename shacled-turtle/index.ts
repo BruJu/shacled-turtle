@@ -24,7 +24,7 @@ export default function shacledTurtle(
   return [
     turtle(),
     shacledTurtleField.extension,
-    autocompletion({ override: [ autocompletionSolve(options?.onDebugInfo) ] }),
+    autocompletion({ override: [ autocompletionSolve(options) ] }),
   ];
 }
 
@@ -32,7 +32,9 @@ export { shacledTurtle };
 
 export type ShacledTurtleOptions = {
   /** Function called when debug information are changed */
-  onDebugInfo?: (debug: DebugInformation) => void
+  onDebugInfo?: (debug: DebugInformation) => void,
+  /** Use prefix.cc to provide prefixes autocompletion. Default = true */
+  usePrefixCC?: boolean
 }
 
 import DebugInformation from "./src/DebugInformation";
