@@ -35,4 +35,6 @@ demo
 
 ## License
 
-MIT License, INSA Lyon
+This work is dual-licensied under the MIT license and the CeCILL-B license by INSA Lyon / Julian Bruyat. You can choose between one of them.
+
+`SPDX-License-Identifier: MIT OR CECILL-B`

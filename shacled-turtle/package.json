@@ -21,7 +21,7 @@
     "directory": "shacled-turtle"
   },
   "author": "Julian Bruyat <julian.bruyat@insa-lyon.fr>",
-  "license": "MIT",
+  "license": "(CECILL-B or MIT)",
   "devDependencies": {
     "@bruju/rdf-test-util": "^1.0.1",
     "@rdfjs/types": "^1.1.0",

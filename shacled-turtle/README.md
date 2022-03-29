@@ -59,4 +59,4 @@ will suggest `s:name` because it knows Alice is a person.
 
 ## License
 
-Published under the MIT License by Julian Bruyat / INSA Lyon.
+Published under either the CeCCIL-B license or the MIT License by Julian Bruyat / INSA Lyon.
