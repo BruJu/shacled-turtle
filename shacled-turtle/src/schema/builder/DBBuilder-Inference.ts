@@ -198,15 +198,15 @@ function toLogicRule(buildRule: Rule): LogicRule {
   function mapMeta(term: RDF.Quad): MetaInfo {
     if (term.predicate.equals(ns.rdf.type)) {
       return {
-        target: term.subject,
+        resource: term.subject,
         kind: 'types',
-        value: term.object
+        shape: term.object
       };
     } else if (term.predicate.equals(ns.sh.targetNode)) {
       return {
-        target: term.object,
+        resource: term.object,
         kind: 'shapes',
-        value: term.subject
+        shape: term.subject
       };
     } else {
       throw Error("Invalid build meta rule " + termToString(term));

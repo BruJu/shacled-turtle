@@ -18,15 +18,14 @@ export type LogicRule = {
 
 /** A meta triple template pattern */
 export type MetaInfo = {
-  /** The target type or shape */
-  target: RDF.Term;
+  resource: RDF.Term;
   /**
    * - types = the value is of type target
    * - shapes = the value must conform to the shape target
    */
   kind: "types" | "shapes";
-  /** The value node */
-  value: RDF.Term
+
+  shape: RDF.Term
 };
 
 export default class InferenceDatabase {
@@ -76,7 +75,7 @@ export default class InferenceDatabase {
         if (logicRule.metaBody !== null) {
           const where = logicRule.metaBody.kind;
 
-          getWithDefault(this.metaToRules[where], logicRule.metaBody.value, () => [])
+          getWithDefault(this.metaToRules[where], logicRule.metaBody.shape, () => [])
           .push(logicRule);
         }
       }
@@ -90,9 +89,9 @@ export default class InferenceDatabase {
   addAxioms(metaBase: MetaBaseInterface): this {
     for (const axiom of this.axioms) {
       if (axiom.metaHead.kind === 'types') {
-        metaBase.types.add(axiom.metaHead.target, axiom.metaHead.value);
+        metaBase.types.add(axiom.metaHead.resource, axiom.metaHead.shape);
       } else {
-        metaBase.shapes.add(axiom.metaHead.target, axiom.metaHead.value);
+        metaBase.shapes.add(axiom.metaHead.resource, axiom.metaHead.shape);
       }
     }
 
@@ -154,31 +153,20 @@ export default class InferenceDatabase {
         // No meta requirement, ok
       } else {
         const metaBody = tripleBasedRule.metaBody;
-        const resourceToCheck = extractFromData(tripleBasedRule.dataBody!, metaBody.target);
+        const resourceToCheck = extractFromData(tripleBasedRule.dataBody!, metaBody.resource);
         const classifiedAs = metaBase[metaBody.kind].getAll(resourceToCheck);
 
-        if (classifiedAs.has(metaBody.value)) {
+        if (classifiedAs.has(metaBody.shape)) {
           // Has the type or shape required by the meta rule, ok
         } else {
           // Can not match the meta part, bad
           continue;
         }
       }
-
-      const metaHead = tripleBasedRule.metaHead;
-
-      // What is the obtained shape or type?
-      const resourceWithNewMeta = extractFromData(tripleBasedRule.dataBody!, metaHead.target);
-
-      // Who gets the obtained shape or type?
-      const objectValue = metaHead.value.termType === "Variable"
-        ? extractFromData(tripleBasedRule.dataBody!, metaHead.value)
-        : metaHead.value;
       
-      // Add it
-      const unstable = metaBase[metaHead.kind].add(resourceWithNewMeta, objectValue);
-      if (unstable) {
-        inferredMeta.push({ target: resourceWithNewMeta, kind: metaHead.kind, value: objectValue });
+      const n = buildConcreteHead(tripleBasedRule, newTriple, null);
+      if (addInMeta(metaBase, n)) {
+        inferredMeta.push(n);
       }
     }
 
@@ -198,7 +186,7 @@ export default class InferenceDatabase {
       const inferred1 = newMetaInformations.dequeue();
       if (inferred1 === undefined) break;
 
-      const rules = this.metaToRules[inferred1.kind].get(inferred1.value);
+      const rules = this.metaToRules[inferred1.kind].get(inferred1.shape);
       if (rules === undefined) continue;
       if (rules.length === 0) continue;
 
@@ -207,32 +195,23 @@ export default class InferenceDatabase {
           // No data requirement: build the produced quad
           // assert(rule.metaHead.target === rule.metaBody!.target)
 
-          const unstable = metaBase[rule.metaHead.kind].add(inferred1.target, rule.metaHead.value);
-          if (unstable) newMetaInformations.enqueue({
-            target: inferred1.target,
-            kind: rule.metaHead.kind,
-            value: rule.metaHead.value
-          });
+          const n = buildConcreteHead(rule, null, inferred1);
+          if (addInMeta(metaBase, n)) {
+            newMetaInformations.enqueue(n);
+          }
         } else {
           // Data requirement: look for the head
           const request = {
-            subject: rule.dataBody.subject.equals(rule.metaBody!.target) ? inferred1.target : null,
+            subject: rule.dataBody.subject.equals(rule.metaBody!.resource) ? inferred1.resource : null,
             predicate: rule.dataBody.predicate,
-            object: rule.dataBody.object.equals(rule.metaBody!.target) ? inferred1.target : null,
+            object: rule.dataBody.object.equals(rule.metaBody!.resource) ? inferred1.resource : null,
           };
           
-          const getProductedTarget = buildProducedTargetFunction(rule, request);
-
           const m = database.match(request.subject, request.predicate, request.object, $defaultGraph);
           for (const quad of m) {
-            const producedTarget = getProductedTarget(quad);
-            const unstable = metaBase[rule.metaHead.kind].add(producedTarget, rule.metaHead.value);
-            if (unstable) {
-              newMetaInformations.enqueue({
-                target: producedTarget,
-                kind: rule.metaHead.kind,
-                value: rule.metaHead.value
-              });
+            const n = buildConcreteHead(rule, quad, inferred1);
+            if (addInMeta(metaBase, n)) {
+              newMetaInformations.enqueue(n);
             }
           }
         }
@@ -241,16 +220,43 @@ export default class InferenceDatabase {
   }
 }
 
+class VariableStorage {
+  variables: {[name: string]: RDF.Term | undefined} = {};
 
-function buildProducedTargetFunction(
-  rule: LogicRule, request: { subject: RDF.Term | null }
-): ((quad: RDF.Quad) => RDF.Term) {
-
-  if (rule.metaHead.target.equals(rule.metaBody!.target)) {
-    return () => request.subject!;
-  } else if (rule.dataBody!.subject.equals(rule.metaBody!.target)) {
-    return (quad: RDF.Quad) => quad.object;
-  } else {
-    return (quad: RDF.Quad) => quad.object;
+  add(concrete: RDF.Term, template: RDF.Term) {
+    if (template.termType !== 'Variable') return;
+    this.variables[template.value] = concrete;
   }
+
+  get(term: RDF.Term): RDF.Term {
+    if (term.termType !== 'Variable') return term;
+
+    const x = this.variables[term.value];
+    if (x === undefined) throw Error("No variable named " + term.value);
+    return x;
+  }
+}
+
+function buildConcreteHead(rule: LogicRule, data: RDF.Quad | null, meta: MetaInfo | null): MetaInfo {
+  let s = new VariableStorage();
+
+  if (data !== null && rule.dataBody !== null) {
+    s.add(data.subject, rule.dataBody.subject);
+    s.add(data.object, rule.dataBody.object);
+  }
+
+  if (meta !== null && rule.metaBody !== null) {
+    s.add(meta.resource, rule.metaBody.resource);
+    s.add(meta.shape, rule.metaBody.shape);
+  }
+
+  return {
+    resource: s.get(rule.metaHead.resource),
+    kind: rule.metaHead.kind,
+    shape: s.get(rule.metaHead.shape)
+  };
+}
+
+function addInMeta(metaBase: MetaBaseInterface, n: MetaInfo): boolean {
+  return metaBase[n.kind].add(n.resource, n.shape);
 }
