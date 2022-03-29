@@ -14,6 +14,7 @@ import { Suggestion } from './schema/SubDB-Suggestion';
 import * as STParser from './Parser';
 import CurrentTriples from './state/CurrentState';
 import shacledTurtleField from './StateField';
+import TermSet from '@rdfjs/term-set';
 
 
 export function tripleAutocompletion(
@@ -37,7 +38,26 @@ export function tripleAutocompletion(
     return null;
   }
 
-  if (localized.currentSVO === SVO.Subject) return null;
+  if (localized.currentSVO === SVO.Subject) {
+    //if (compCtx.explicit === false) return null;
+
+    let possiblesTerms = new TermSet();
+    
+    function isPossible(term: RDF.Term) {
+      return term.termType !== 'BlankNode' || !term.value.startsWith("_shacled")
+    }
+
+    for (const quad of current.dataset) {
+      if (isPossible(quad.subject)) possiblesTerms.add(quad.subject);
+      if (isPossible(quad.object)) possiblesTerms.add(quad.object);
+    }
+
+    return {
+      from: word.from,
+      options: [...possiblesTerms].map(term => suggestionToCompletion(term, new Description(), directives)),
+      filter: !compCtx.explicit
+    };
+  }
 
   situation.setSubject(localized.subjectToken, localized.currentSubject, current.meta);
 
@@ -51,8 +71,8 @@ export function tripleAutocompletion(
 
     options = [
       {
-        detail: termToCompletionLabel(ns.rdf.type, directives),
-        label: "Type of the resource",
+        label: termToCompletionLabel(ns.rdf.type, directives),
+        detail: "Type of the resource",
         apply: termToCompletionLabel(ns.rdf.type, directives)
       },
       ...suggestionsToCompletions(possiblePredicates, directives)
@@ -68,7 +88,7 @@ export function tripleAutocompletion(
     return null;
   }
  
-  return { from: word.from, options, filter: false };
+  return { from: word.from, options, filter: !compCtx.explicit };
 }
 
 function buildDatasetFromScratch(
@@ -137,12 +157,14 @@ function suggestionToCompletion(
     return [...field].map(literal => literal.value);
   }
 
+  console.log("!!!")
+
   
   const info = getStrings('labels');
   if (info) {
     const oldLabel = res.label;
-    res.label = info.join(" / ");
-    res.detail = oldLabel;
+    res.detail = info.join(" / ");
+    //res.detail = oldLabel;
     res.apply = oldLabel;
   }
 
