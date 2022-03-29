@@ -153,8 +153,19 @@ describe("Suggestion of predicates", () => {
     ]
   );
 
-
   const ex = ns.ex;
+
+  generateUnitTest(
+    'paths-data.ttl',
+    'paths-schema-6.ttl',
+
+    [
+      { on: ex.node06, expect: [ex.a] },
+      { on: ex.target6_1, expect: [ex.b] },
+      { on: ex.target6_2, expect: [] },
+      { on: ex.target6_3, expect: [ex.ok] }
+    ]
+  );
 
   generateUnitTest(
     'paths-data.ttl',
@@ -186,7 +197,7 @@ describe("Suggestion of predicates", () => {
 
       { on: ex.node06, expect: [ex.a] },
       { on: ex.target6_1, expect: [ex.b] },
-//      { on: ex.target6_2, expect: [] },
+      { on: ex.target6_2, expect: [] },
       { on: ex.target6_3, expect: [ex.ok] },
 
       { on: ex.node07, expect: [] },
@@ -210,9 +221,6 @@ describe("Suggestion of predicates", () => {
       { on: ex.target12_mult, expect: [] },
     ]
   );
-
-
-
 });
 
 type Operation =
