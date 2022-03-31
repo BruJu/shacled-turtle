@@ -2,7 +2,9 @@ import TermMap from "@rdfjs/term-map";
 import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
 import Schema from ".";
+import { addTermPairInTermMultiMap } from "../util";
 import { MetaBaseInterface, MetaBaseInterfaceComponent } from "./MetaDataInterface";
+import { TypesAndShapes } from "./SubDB-Suggestion";
 
 /**
  * Storage for the metadata of a dataset. Metadata are defined as for each RDF
@@ -25,6 +27,13 @@ export default class MetaDataState implements MetaBaseInterface {
   onNewTriple(quad: RDF.Quad, data: RDF.DatasetCore) {
     this.schema.ruleset.onNewTriple(quad, data, this);
   }
+
+  getObjectsOfType(types: TypesAndShapes): TermSet<RDF.Term> {
+    return new TermSet([
+      ...this.types.getClassifiedAs(types.types),
+      ...this.shapes.getClassifiedAs(types.shapes)
+    ]);
+  }
 }
 
 /**
@@ -32,6 +41,7 @@ export default class MetaDataState implements MetaBaseInterface {
  */
 export class MetaDataStateComponent implements MetaBaseInterfaceComponent {
   readonly data: TermMap<RDF.Term, TermSet> = new TermMap();
+  readonly classifiedToTerm: TermMap<RDF.Term, TermSet> = new TermMap();
 
   add(resource: RDF.Term, classifier: RDF.Term): boolean {
     let classifiedAs = this.data.get(resource);
@@ -42,6 +52,8 @@ export class MetaDataStateComponent implements MetaBaseInterfaceComponent {
     
     if (classifiedAs.has(classifier)) return false;
 
+    addTermPairInTermMultiMap(this.classifiedToTerm, classifier, resource);
+
     classifiedAs.add(classifier);
     return true;
   }
@@ -49,5 +61,18 @@ export class MetaDataStateComponent implements MetaBaseInterfaceComponent {
   getAll(resource: RDF.Term): TermSet<RDF.Term> {
     const classifiedAs = this.data.get(resource);
     return classifiedAs || new TermSet();
+  }
+  
+  getClassifiedAs(list: Iterable<RDF.Term>): Iterable<RDF.Term> {
+    let resources: RDF.Term[] = [];
+
+    for (const classified of list) {
+      const terms = this.classifiedToTerm.get(classified);
+      if (terms !== undefined) {
+        resources.push(...terms);
+      }
+    }
+    
+    return resources;
   }
 }

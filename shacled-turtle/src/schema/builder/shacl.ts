@@ -51,6 +51,10 @@ export default function addSHACL(builder: OntologyBuilder, store: RDF.DatasetCor
 
     for (const predicate of shape.target.objectsOf) {
       builder.rulesBuilder.shObjectsOf(shapeName, predicate);
+
+      builder.suggestibleBuilder.addTypePathTarget(
+        null, predicate as RDF.NamedNode, { shape: shapeName }
+      )
     }
 
     shape.target.node.forEach(node =>
@@ -180,7 +184,7 @@ function readPathsOfShape(
       const transitions = addPath(pathValueQuad.object, store, usableNodes);
 
       if (transitions !== false) {
-        for (const transition of transitions) {
+        for (const transition of transitions.transitions) {
           if (transition.type === "epsilon") {
             ontoBuilder.rulesBuilder.shSubShape(transition.from, transition.to);
           } else {
@@ -189,6 +193,12 @@ function readPathsOfShape(
             if (transition.type === "+") {
               ontoBuilder.rulesBuilder.shPredicatePath(from, predicate, to);
               ontoBuilder.suggestibleBuilder.addShapePath(from, predicate, pathDescription);
+
+              if (endType !== null && transitions.ends.has(to)) {
+                ontoBuilder.suggestibleBuilder.addTypePathTarget(
+                  { shape: from }, predicate, { shape: endType }
+                )
+              }
             } else if (transition.type === "-") {
               ontoBuilder.rulesBuilder.shInversePredicatePath(to, predicate, from);
             }

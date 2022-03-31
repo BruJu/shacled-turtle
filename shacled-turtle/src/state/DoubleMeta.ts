@@ -2,6 +2,7 @@ import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
 import { MetaBaseInterface, MetaBaseInterfaceComponent } from "../schema/MetaDataInterface";
 import { MetaDataStateComponent } from "../schema/MetaDataState";
+import { TypesAndShapes } from "../schema/SubDB-Suggestion";
 
 /**
  * A meta base implementation that uses two different storage: one unstable and
@@ -28,6 +29,13 @@ export default class DoubleMeta implements MetaBaseInterface {
   clearBoth() {
     this.types.clearBoth();
     this.shapes.clearBoth();
+  }
+  
+  getObjectsOfType(types: TypesAndShapes): TermSet<RDF.Term> {
+    return new TermSet([
+      ...this.types.getClassifiedAs(types.types),
+      ...this.shapes.getClassifiedAs(types.shapes),
+    ])
   }
 }
 
@@ -69,6 +77,13 @@ export class DoubleComponent implements MetaBaseInterfaceComponent {
 
   clearUnstable() {
     this.unstable.data.clear();
+  }
+  
+  getClassifiedAs(list: Iterable<RDF.Term>): Iterable<RDF.Term> {
+    return [
+      ...this.stable.getClassifiedAs(list),
+      ...this.unstable.getClassifiedAs(list),
+    ];
   }
 }
 

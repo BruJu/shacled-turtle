@@ -1,5 +1,6 @@
 import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
+import { TypesAndShapes } from "./SubDB-Suggestion";
 
 /** Storage for the list of types and shapes of all resources */
 export interface MetaBaseInterface {
@@ -7,6 +8,8 @@ export interface MetaBaseInterface {
   types: MetaBaseInterfaceComponent;
   /** List of shapes */
   shapes: MetaBaseInterfaceComponent;
+
+  getObjectsOfType(types: TypesAndShapes): TermSet<RDF.Term>;
 }
 
 /**
@@ -17,4 +20,6 @@ export interface MetaBaseInterfaceComponent {
   add(resource: RDF.Term, classifier: RDF.Term): boolean;
   /** Return the set of all types for a given resource */
   getAll(resource: RDF.Term): TermSet<RDF.Term>;
+
+  getClassifiedAs(list: Iterable<RDF.Term>): Iterable<RDF.Term>;
 }

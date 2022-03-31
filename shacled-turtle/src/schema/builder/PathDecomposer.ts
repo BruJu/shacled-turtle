@@ -22,7 +22,7 @@ import { ns } from "../../namespaces";
  */
 export default function writePath(
   pathName: RDF.Term, shapeGraph: RDF.DatasetCore, writer: PathWriter
-): RDFAutomataTransition[] | false {
+): { transitions: RDFAutomataTransition[], ends: TermSet<RDF.Term> } | false {
   // Convert path to finite state automata
   const composedAutomata = decompose(pathName, shapeGraph);
   /* istanbul ignore if */
@@ -69,7 +69,10 @@ export default function writePath(
     }
   }
 
-  return transitions;
+  return {
+    transitions: transitions,
+    ends: new TermSet(pathAutomata.ends.map(g => getNodeTypeOfStateId(g.id)))
+  };
 }
 
 export interface PathWriter {

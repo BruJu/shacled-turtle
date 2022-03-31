@@ -10,7 +10,7 @@ import DebugInformation from './DebugInformation';
 import { ns } from './namespaces';
 import Schema from './schema';
 import Description from './schema/Description';
-import { Suggestion } from './schema/SubDB-Suggestion';
+import { Suggestion, TypesAndShapes } from './schema/SubDB-Suggestion';
 import * as STParser from './Parser';
 import CurrentTriples from './state/CurrentState';
 import shacledTurtleField from './StateField';
@@ -65,8 +65,10 @@ export function tripleAutocompletion(
 
   if (localized.currentSVO === SVO.Verb) {
     const possiblePredicates = suggestions.suggestible.getAllPathsFor(
-      current.meta.types.getAll(localized.currentSubject),
-      current.meta.shapes.getAll(localized.currentSubject)
+      TypesAndShapes.from(
+        current.meta.types.getAll(localized.currentSubject),
+        current.meta.shapes.getAll(localized.currentSubject)
+      )
     );
 
     options = [
@@ -82,7 +84,24 @@ export function tripleAutocompletion(
     if (localized.currentPredicate.equals(ns.rdf.type)) {
       options = suggestionsToCompletions(suggestions.getAllTypes(), directives);
     } else {
-      return null;
+      const subjectTOS = TypesAndShapes.from(
+        current.meta.types.getAll(localized.currentSubject),
+        current.meta.shapes.getAll(localized.currentSubject)
+      );
+
+      const objectTOS = suggestions.suggestible.getPossibleObjectShape(
+        subjectTOS, localized.currentPredicate
+      );
+
+      const objects = [...current.meta.getObjectsOfType(objectTOS)]
+        .filter(t => t.termType === "NamedNode" || (
+          t.termType === "BlankNode" && !t.value.startsWith("_shacled")
+        ));
+
+      options = suggestionsToCompletions(
+        objects.map(o => ({ term: o, description: new Description() })),
+        directives
+      );
     }
   } else {
     return null;

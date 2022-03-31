@@ -43,6 +43,10 @@ export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore
     builder.suggestibleBuilder.addExistingType(
       quad.object, OntologyBuilder.descriptionOf(store, quad.object)
     );
+
+    builder.suggestibleBuilder.addTypePathTarget(
+      null, quad.subject as RDF.NamedNode, { type: quad.object }
+    )
   }
 
   for (const quad of store.match(null, ns.rdfs.subClassOf, null)) {

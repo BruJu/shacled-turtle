@@ -32,9 +32,11 @@ export default class OntologyBuilder {
       this.suggestibleBuilder.addTypePath(quad.object, quad.subject as RDF.NamedNode, new Description());
     }
 
-    // schema:rangeIncludes does not help
-    //for (const quad of store.match(null, schemaNs.rangeIncludes, null, $defaultGraph)) {
-    //}
+    for (const quad of store.match(null, schemaNs.rangeIncludes, null, $defaultGraph)) {
+      this.suggestibleBuilder.addTypePathTarget(
+        null, quad.subject as RDF.NamedNode, { type: quad.object }
+      )
+    }
   }
 
   static descriptionOf(dataset: RDF.DatasetCore, term: RDF.Term): Description {
