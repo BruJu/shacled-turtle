@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Shacled Turtle - SHACL validation (?)</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+  </head>
+  <body>
+    <section class="section container">
+      <h1 class="title is-1">Shacled Turtle - Shape and data graph</h1>
+      <div class="columns">
+        <div class="column">
+          <h2 class="subtitle is-2">Shape graph</h2>
+          <div id="editor_shacl"></div>
+        </div>
+        <div class="column">
+          <h2 class="subtitle is-2">Data graph</h2>
+          <div id="editor_data"></div>
+        </div>
+      </div>
+      <div>
+        <p>
+          <button id="validatebutton" class="button is-primary">Validate</button>
+        </p>
+
+        <p>
+          <pre id="validation_report">
+
+          </pre>
+        </p>
+
+      </div>
+    </section class="section">
+
+    <script type="module" src="shacl.ts"></script>
+  </body>
+</html>

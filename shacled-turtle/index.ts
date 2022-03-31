@@ -3,7 +3,9 @@ import { Extension } from "@codemirror/state";
 import { autocompletion } from "@codemirror/autocomplete";
 import autocompletionSolve from "./src/autocompletion-solving";
 import shacledTurtleField, { changeSchema } from "./src/StateField";
-export { changeSchema }
+export { changeSchema };
+import parseDocument from "./src/FullParser";
+export { parseDocument };
 
 /**
  * The Shacled Turtle extension. It provides:

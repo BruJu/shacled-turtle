@@ -4,8 +4,8 @@
   "description": "PREC and Shacled Turtle demonstration website",
   "source": "./src/index.html",
   "scripts": {
-    "start": "npx parcel ./src/prec-demo.html ./src/index.html ./src/two-editors.html ./src/st-readme-example.html -p 12345",
-    "build": "npx parcel build ./src/prec-demo.html ./src/index.html ./src/two-editors.html ./src/st-readme-example.html --public-url ./ --dist-dir ./dist",
+    "start": "npx parcel ./src/*.html -p 12345",
+    "build": "npx parcel build ./src/*.html --public-url ./ --dist-dir ./dist",
     "clean": "npx del-cli ../.parcel-cache/ && npx del-cli dist/",
     "test": "npx mocha -r ts-node/register test/*.test.ts"
   },
@@ -25,6 +25,7 @@
     "@rdfjs/types": "^1.0.1",
     "@types/mocha": "^9.1.0",
     "@types/n3": "^1.10.4",
+    "@types/rdf-validate-shacl": "^0.4.0",
     "@types/rdfjs__namespace": "^1.1.5",
     "@types/rdfjs__term-map": "^1.0.2",
     "@types/rdfjs__term-set": "^1.0.3",
@@ -48,6 +49,7 @@
     "n3": "^1.12.2",
     "prec": "^0.0.1",
     "rdf-string": "^1.6.0",
+    "rdf-validate-shacl": "^0.4.3",
     "shacled-turtle": "^0.0.1"
   }
 }

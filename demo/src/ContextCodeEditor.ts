@@ -13,11 +13,16 @@ export default class ContextCodeEditor {
   readonly view: EditorView;
 
   /** Mount the code editor inside the given parent */
-  constructor(parent: Element, extensions?: Extension[], options?: ShacledTurtleOptions) {
+  constructor(
+    parent: Element,
+    extensions?: Extension[],
+    options?: ShacledTurtleOptions,
+    initialText = initialDocument()
+  ) {
     this.view = new EditorView({
       parent: parent,
       state: EditorState.create({
-        doc: initialDocument(),
+        doc: initialText,
         extensions: [
           basicSetup,
           placeholder("Your context"),
@@ -54,7 +59,7 @@ export default class ContextCodeEditor {
   }
 }
 
-function initialDocument() {
+export function initialDocument() {
   let lines: string[] = [];
 
   for (const prefix of <const>["rdf", "rdfs", "xsd", "prec", "pvar", "pgo", "ex"]) {
