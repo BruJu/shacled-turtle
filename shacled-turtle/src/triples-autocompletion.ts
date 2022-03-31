@@ -93,6 +93,8 @@ export function tripleAutocompletion(
         subjectTOS, localized.currentPredicate
       );
 
+      situation.setObject(objectTOS);
+
       const objects = [...current.meta.getObjectsOfType(objectTOS)]
         .filter(t => t.termType === "NamedNode" || (
           t.termType === "BlankNode" && !t.value.startsWith("_shacled")
@@ -175,9 +177,6 @@ function suggestionToCompletion(
     if (field.size === 0) return undefined;
     return [...field].map(literal => literal.value);
   }
-
-  console.log("!!!")
-
   
   const info = getStrings('labels');
   if (info) {

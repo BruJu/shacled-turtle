@@ -1,5 +1,6 @@
 import { SyntaxNode } from '@lezer/common';
 import * as RDF from '@rdfjs/types';
+import { TypesAndShapes } from './schema/SubDB-Suggestion';
 import DoubleMeta from './state/DoubleMeta';
 
 /**
@@ -25,6 +26,13 @@ export default class DebugInformation {
     shapes: RDF.Term[];
   } = null;
 
+  object: null | {
+    /** The list of types of the object */
+    types: RDF.Term[];
+    /** The list of shapes of the object */
+    shapes: RDF.Term[];
+  } = null;
+
   constructor(theNode: SyntaxNode) {
     this.hierarchy = computeHierarchy(theNode);
   }
@@ -35,6 +43,13 @@ export default class DebugInformation {
       term: term,
       types: [...meta.types.getAll(term)],
       shapes: [...meta.shapes.getAll(term)],
+    };
+  }
+
+  setObject(tos: TypesAndShapes) {
+    this.object = {
+      types: [...tos.types],
+      shapes: [...tos.shapes]
     };
   }
 }

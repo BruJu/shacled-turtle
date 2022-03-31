@@ -8,6 +8,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as n3 from "n3";
 import parseFullDocument from "../src/FullParser";
+import { TypesAndShapes } from "../src/schema/SubDB-Suggestion";
 
 const $quad = n3.DataFactory.quad;
 const $lit = n3.DataFactory.literal;
@@ -244,8 +245,12 @@ function getSuggestedPredicates(
   meta: MetaBaseInterface, schema: Schema,
   subject: RDF.Quad_Subject
 ): TermSet<RDF.Term> {
-  return new TermSet(schema.suggestible.getAllPathsFor(
-    meta.types.getAll(subject),
-    meta.shapes.getAll(subject)
-  ).map(suggestion => suggestion.term));
+  return new TermSet(
+    schema.suggestible.getAllPathsFor(
+      TypesAndShapes.from(
+        meta.types.getAll(subject),
+        meta.shapes.getAll(subject)
+      )
+    ).map(suggestion => suggestion.term)
+  );
 }

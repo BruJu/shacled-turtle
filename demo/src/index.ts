@@ -40,6 +40,22 @@ function injectDebugInfoInDocument(debugInfo: DebugInformation) {
 
   subjectEl.appendChild(document.createTextNode(subjectDisplay));  
   typesEl.appendChild(document.createTextNode(typesText));
+
+  const obj = document.getElementById("current_object_types");
+  if (obj !== null) {
+    let txt: string;
+    if (debugInfo.object !== null) {
+      txt = "Types=["
+        + debugInfo.object.types.map(term => termToString(term)).join(", ") + "]"
+        + " Shapes=["
+        + debugInfo.object.shapes.map(term => termToString(term)).join(", ") + "]";
+    } else {
+      txt = "";
+    }
+
+    obj.innerHTML = "";
+    obj.appendChild(document.createTextNode(txt));
+  }
 }
 
 

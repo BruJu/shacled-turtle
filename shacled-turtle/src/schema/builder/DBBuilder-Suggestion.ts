@@ -53,7 +53,7 @@ export default class SuggestionDBBuilder {
     if ('type' in target) {
       where.types.add(target.type);
     } else {
-      where.types.add(target.shape);
+      where.shapes.add(target.shape);
     }
   }
 
