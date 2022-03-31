@@ -36,15 +36,21 @@ export default class ContextCodeEditor {
   }
 
   async changeSchema(schemaUrl: string): Promise<boolean> {
-    const answer = await axios.get<string>(schemaUrl);
-    if (answer.status !== 200) {
-      console.error("SuggestionDatabase::load: Error " + answer.status);
+    try {
+      const answer = await axios.get<string>(schemaUrl);
+      
+      if (answer.status !== 200) {
+        console.error("SuggestionDatabase::load: Error " + answer.status);
+        return false;
+      }
+
+      const quads = new n3.Parser().parse(answer.data);
+      changeSchema(this.view.state, quads);
+      return true;
+    } catch (err) {
+      console.error("SuggestionDatabase::load: Error " + err);
       return false;
     }
-
-    const quads = new n3.Parser().parse(answer.data);
-    changeSchema(this.view.state, quads);
-    return true;
   }
 }
 
