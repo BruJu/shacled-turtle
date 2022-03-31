@@ -39,6 +39,7 @@
     "@bruju/lang-turtle": "^0.0.2",
     "@codemirror/autocomplete": "^0.19.14",
     "@codemirror/language": "^0.19.8",
+    "@codemirror/lint": "^0.19.6",
     "@lezer/common": "^0.15.11",
     "@rdfjs/namespace": "^1.1.0",
     "@rdfjs/term-map": "^1.1.0",

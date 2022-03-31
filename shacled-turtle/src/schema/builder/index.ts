@@ -33,6 +33,7 @@ export default class OntologyBuilder {
     }
 
     for (const quad of store.match(null, schemaNs.rangeIncludes, null, $defaultGraph)) {
+      this.suggestibleBuilder.addExistingType(quad.object, new Description());
       this.suggestibleBuilder.addTypePathTarget(
         null, quad.subject as RDF.NamedNode, { type: quad.object }
       )

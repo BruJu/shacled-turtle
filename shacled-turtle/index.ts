@@ -6,6 +6,7 @@ import shacledTurtleField, { changeSchema } from "./src/StateField";
 export { changeSchema };
 import parseDocument from "./src/FullParser";
 export { parseDocument };
+import lint from "./src/error-detection";
 
 /**
  * The Shacled Turtle extension. It provides:
@@ -27,6 +28,7 @@ export default function shacledTurtle(
     turtle(),
     shacledTurtleField.extension,
     autocompletion({ override: [ autocompletionSolve(options) ] }),
+    lint
   ];
 }
 
