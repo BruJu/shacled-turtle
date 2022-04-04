@@ -11,10 +11,17 @@ const dataWrapper = document.getElementById("editor_data")!;
 const shaclGraph = "https://gist.githubusercontent.com/BruJu/08d39fc77b6eeea8ecd5a632409940f6/raw/1515bb5c59516d68f10c0d06a7dcce67ffc818d1/shacl.shape.ttl";
 
 const minHeightEditor = EditorView.theme({
-  "&": {height: "400px", "max-height": "400px"},
+  "&": {height: "400px", "max-height": "400px", width: "600px"},
   ".cm-scroller": {overflow: "auto"},
   ".cm-content, .cm-gutter": {"max-height": "400px"}
-})
+});
+
+
+const theme = EditorView.theme({
+  "&": { height: "600px" },
+  ".cm-scroller": { overflow: "auto" },
+  ".cm-content, .cm-gutter": { minHeight: "600px" }
+});
 
 const dataEditor = new ContextCodeEditor(dataWrapper,
   [minHeightEditor]
