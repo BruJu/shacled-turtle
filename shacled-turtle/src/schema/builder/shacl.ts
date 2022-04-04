@@ -38,10 +38,8 @@ export default function addSHACL(builder: OntologyBuilder, store: RDF.DatasetCor
     for (const predicate of shape.target.subjectsOf) {
       builder.rulesBuilder.shSubjectsOf(shapeName, predicate);
 
-      const description = OntologyBuilder.descriptionOf(store, predicate);
-
       builder.suggestibleBuilder.addTypingPredicate(
-        predicate, description
+        predicate, OntologyBuilder.descriptionOf(store, predicate)
       );
 
       builder.suggestibleBuilder.addShapePath(

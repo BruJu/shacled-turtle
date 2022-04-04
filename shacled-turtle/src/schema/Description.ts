@@ -1,5 +1,6 @@
 import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
+import * as n3 from "n3";
 import { ns } from "../namespaces";
 
 /**
@@ -40,7 +41,7 @@ export default class Description {
    */
   private static fromShacl(store: RDF.DatasetCore, target: RDF.Quad_Subject): Description {
     const self = new Description();
-    //Description.insertInto(store, target, ns.sh.apply('name'), self.labels);
+    Description.insertInto(store, target, n3.DataFactory.namedNode("http://www.w3.org/ns/shacl#name"), self.labels);
     Description.insertInto(store, target, ns.sh.comment, self.comments);
     return self;
   }

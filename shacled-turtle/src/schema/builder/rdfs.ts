@@ -55,7 +55,7 @@ export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore
 
   for (const quad of store.match(null, ns.rdf.type, ns.rdfs.Class)) {
     builder.suggestibleBuilder.addExistingType(
-      quad.object, OntologyBuilder.descriptionOf(store, quad.subject)
+      quad.subject, OntologyBuilder.descriptionOf(store, quad.subject)
     );
   }
 }

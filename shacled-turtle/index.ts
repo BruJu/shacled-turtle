@@ -24,12 +24,17 @@ import lint from "./src/error-detection";
 export default function shacledTurtle(
   options: ShacledTurtleOptions = {}
 ): Extension {
-  return [
+  let extensions = [
     turtle(),
     shacledTurtleField.extension,
-    autocompletion({ override: [ autocompletionSolve(options) ] }),
-    lint
+    autocompletion({ override: [ autocompletionSolve(options) ] })
   ];
+
+  if (options.displayErrors !== false) {
+    extensions.push(lint);
+  }
+
+  return extensions;
 }
 
 export { shacledTurtle };
@@ -38,7 +43,9 @@ export type ShacledTurtleOptions = {
   /** Function called when debug information are changed */
   onDebugInfo?: (debug: DebugInformation) => void,
   /** Use prefix.cc to provide prefixes autocompletion. Default = true */
-  usePrefixCC?: boolean
+  usePrefixCC?: boolean,
+  /** Display errors. Error detection is currently very basic. Default = true */
+  displayErrors?: boolean;
 }
 
 import DebugInformation from "./src/DebugInformation";
