@@ -2,7 +2,6 @@ import { CompletionContext, CompletionResult } from "@codemirror/autocomplete";
 import { syntaxTree } from "@codemirror/language";
 import { SyntaxNode, TreeCursor } from "@lezer/common";
 import rdfNamespace from '@rdfjs/namespace';
-import { ns } from "./namespaces";
 import DebugInformation from "./DebugInformation";
 import { tripleAutocompletion } from "./triples-autocompletion";
 import { ShacledTurtleOptions } from "..";
@@ -48,7 +47,7 @@ export default function autocompletionSolve(options: ShacledTurtleOptions) {
     let retval: CompletionResult | null = null;
     if (typeOfStatement === TypeOfStatement.Directive) {
       situation.autoCompletionType = 'directive';
-      retval = directiveAutocompletion(context, cursor.node, theNode, prefixes);
+      retval = directiveAutocompletion(context, cursor.node, prefixes);
     } else if (typeOfStatement === TypeOfStatement.Triple) {
       situation.autoCompletionType = 'triples';
       retval = tripleAutocompletion(context, tree, theNode, situation);
@@ -73,7 +72,7 @@ export default function autocompletionSolve(options: ShacledTurtleOptions) {
  */
 function directiveAutocompletion(
   context: CompletionContext, directiveSyntaxNode: SyntaxNode,
-  currentlyFilledNode: SyntaxNode, prefixes: ExistingPrefixes
+  prefixes: ExistingPrefixes
 ): CompletionResult | null {
   const firstChild = directiveSyntaxNode.firstChild;
   if (firstChild === null) return null;
