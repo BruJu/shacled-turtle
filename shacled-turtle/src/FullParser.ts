@@ -1,6 +1,7 @@
 import { turtle } from "@bruju/lang-turtle";
-import { syntaxTree } from "@codemirror/language";
+import { ensureSyntaxTree } from "@codemirror/language";
 import { EditorState } from "@codemirror/state";
+import { Tree } from "@lezer/common";
 import * as RDF from "@rdfjs/types";
 import { TurtleDirectives } from "./autocompletion-solving";
 import * as STParser from "./Parser";
@@ -8,13 +9,13 @@ import { readDirective } from "./triples-autocompletion";
 
 export default function parseFullDocument(document: string): RDF.Quad[] {
   const state = EditorState.create({ doc: document, extensions: [turtle()] });
+  const tree = getSyntaxTree(state);
 
-  const directives: TurtleDirectives = { base: null, prefixes: {} };
-
-  const tree = syntaxTree(state);
   const root = tree.topNode;
 
   let child = root.firstChild;
+
+  const directives: TurtleDirectives = { base: null, prefixes: {} };
 
   let currentTriples: RDF.Quad[] = [];
 
@@ -32,4 +33,15 @@ export default function parseFullDocument(document: string): RDF.Quad[] {
   }
 
   return currentTriples;
+}
+
+function getSyntaxTree(state: EditorState): Tree {
+  while (true) {
+    const tree = ensureSyntaxTree(state, 5000);
+    if (tree !== null) {
+      return tree;
+    }
+
+    // Wait for another 5000 ms
+  }
 }
