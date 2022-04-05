@@ -13,7 +13,10 @@
   "keywords": [
     "turtle",
     "code mirror",
-    "autocompletion"
+    "autocompletion",
+    "rdf",
+    "shacl",
+    "rdfs"
   ],
   "repository": {
     "type": "git",
