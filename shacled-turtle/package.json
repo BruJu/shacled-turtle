@@ -23,7 +23,7 @@
   "author": "Julian Bruyat <julian.bruyat@insa-lyon.fr>",
   "license": "(CECILL-B or MIT)",
   "devDependencies": {
-    "@bruju/rdf-test-util": "^1.0.1",
+    "@bruju/rdf-test-util": "^1.0.2",
     "@rdfjs/types": "^1.1.0",
     "@types/mocha": "^9.1.0",
     "@types/n3": "^1.10.4",
