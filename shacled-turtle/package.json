@@ -1,6 +1,6 @@
 {
   "name": "shacled-turtle",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Code Mirror Turtle language support with autocompletion",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
