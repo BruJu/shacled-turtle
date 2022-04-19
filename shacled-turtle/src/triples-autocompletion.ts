@@ -15,6 +15,7 @@ import * as STParser from './Parser';
 import CurrentTriples from './state/CurrentState';
 import shacledTurtleField from './StateField';
 import TermSet from '@rdfjs/term-set';
+import { DataFactory } from 'n3';
 
 
 export function tripleAutocompletion(
@@ -23,6 +24,7 @@ export function tripleAutocompletion(
   currentNode: SyntaxNode,
   situation: DebugInformation
 ): CompletionResult | null {
+  let filter = !compCtx.explicit;
   const word = compCtx.matchBefore(/[a-zA-Z"'0-9_+-/<>:\\]*/);
 
   if (word === null) return null;
@@ -58,18 +60,48 @@ export function tripleAutocompletion(
       filter: !compCtx.explicit
     };
   }
+  
+  if (localized.currentSVO === SVO.Object && localized.isRdfLiteral) {
+    
+    const op = () => {
+      if (word.from < 2) return null;
+
+      const lastTwo = compCtx.state.sliceDoc(word.from - 2, word.from);
+      if (lastTwo[1] !== "^") return null;
+      if (lastTwo[0] !== '^') return undefined;
+
+      return {
+        from: word.from,
+        options: suggestionsToCompletions(xsdTerms, directives),
+        filter: !compCtx.explicit
+      };
+    };
+
+    const res = op();
+    if (res !== null && res !== undefined) {
+      return res;
+    }
+
+    if (res === undefined) {
+      return null;
+    }
+  }
 
   situation.setSubject(localized.subjectToken, localized.currentSubject, current.meta);
 
   let options: Completion[] = [];
 
   if (localized.currentSVO === SVO.Verb) {
+    const types = current.meta.types.getAll(localized.currentSubject);
+    const shapes = current.meta.shapes.getAll(localized.currentSubject);
+
     const possiblePredicates = suggestions.suggestible.getAllPathsFor(
-      TypesAndShapes.from(
-        current.meta.types.getAll(localized.currentSubject),
-        current.meta.shapes.getAll(localized.currentSubject)
-      )
+      TypesAndShapes.from(types, shapes)
     );
+
+    if (types.size === 0 && shapes.size === 0) {
+      filter = false;
+    }
 
     options = [
       {
@@ -109,7 +141,7 @@ export function tripleAutocompletion(
     return null;
   }
  
-  return { from: word.from, options, filter: !compCtx.explicit };
+  return { from: word.from, options, filter: filter };
 }
 
 function buildDatasetFromScratch(
@@ -135,6 +167,18 @@ function buildDatasetFromScratch(
 
   return { current: currentTriples, directives: directives };
 }
+
+const xsdTerms = [
+  "string", "dateTime", "time", "date",
+  "boolean", "float", "double", "anyURL",
+  "decimal", "integer"
+]
+.map(suffix => "http://www.w3.org/2001/XMLSchema#" + suffix)
+.sort()
+.map(url => ({
+  term: DataFactory.namedNode(url),
+  description: new Description()
+}));
 
 ////////////////////////////////////////////////////////////////////////////////
 

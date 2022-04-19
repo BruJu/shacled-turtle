@@ -18,7 +18,7 @@ export enum SVO { Subject, Verb, Object };
 export type LocalizeResult = null
   | { currentSVO: SVO.Subject }
   | { currentSVO: SVO.Verb, currentSubject: RDF.Quad_Subject, subjectToken: string } 
-  | { currentSVO: SVO.Object, currentSubject: RDF.Quad_Subject, subjectToken: string, currentPredicate: RDF.Quad_Predicate };
+  | { currentSVO: SVO.Object, currentSubject: RDF.Quad_Subject, subjectToken: string, currentPredicate: RDF.Quad_Predicate, isRdfLiteral: boolean }
 
 /**
  * Locate on which part of a triple the given syntax node is and what are the
@@ -54,7 +54,8 @@ export function localize(
       currentSVO: SVO.Object,
       currentSubject: sp.subject,
       subjectToken: sp.subjectToken,
-      currentPredicate: sp.predicate
+      currentPredicate: sp.predicate,
+      isRdfLiteral: firstUnit.isRdfLiteral
     };
   } else {
     return null;
@@ -163,7 +164,12 @@ function localizeReadSubjectPredicate(
 
 
 /** From the node, goes to a parent subject, predicate or object node. */
-function goToUnitNode(node: SyntaxNode): null | { type: SVO, node: SyntaxNode } {
+function goToUnitNode(node: SyntaxNode)
+: null
+| { type: SVO.Subject | SVO.Verb, node: SyntaxNode }
+| { type: SVO.Object, node: SyntaxNode, isRdfLiteral: boolean }  {
+  let isRdfLiteral = false;
+
   let x: SyntaxNode | null = node;
   while (true) {
     if (x === null) return null;
@@ -182,7 +188,7 @@ function goToUnitNode(node: SyntaxNode): null | { type: SVO, node: SyntaxNode } 
               return { type: SVO.Subject, node: x };
             case "Object":
             case "QtObject":
-              return { type: SVO.Object, node: x.parent };
+              return { type: SVO.Object, node: x.parent, isRdfLiteral };
             default:
               return null;
           }
@@ -194,7 +200,11 @@ function goToUnitNode(node: SyntaxNode): null | { type: SVO, node: SyntaxNode } 
         return { type: SVO.Verb, node: x };
       case "Object":
       case "QtObject":
-        return { type: SVO.Object, node: x };
+        return { type: SVO.Object, node: x, isRdfLiteral };
+      case "RDFLiteral":
+        isRdfLiteral = true;
+        x = x.parent;
+        break;
       default:
         x = x.parent;
         break;
