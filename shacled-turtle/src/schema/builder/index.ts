@@ -28,12 +28,12 @@ export default class OntologyBuilder {
     const schemaNs = rdfNamespace("http://schema.org/");
 
     for (const quad of store.match(null, schemaNs.domainIncludes, null, $defaultGraph)) {
-      this.suggestibleBuilder.addExistingType(quad.object, new Description());
-      this.suggestibleBuilder.addTypePath(quad.object, quad.subject as RDF.NamedNode, new Description());
+      this.suggestibleBuilder.addExistingType(quad.object, OntologyBuilder.descriptionOf(store, quad.object));
+      this.suggestibleBuilder.addTypePath(quad.object, quad.subject as RDF.NamedNode, OntologyBuilder.descriptionOf(store, quad.subject));
     }
 
     for (const quad of store.match(null, schemaNs.rangeIncludes, null, $defaultGraph)) {
-      this.suggestibleBuilder.addExistingType(quad.object, new Description());
+      this.suggestibleBuilder.addExistingType(quad.object, OntologyBuilder.descriptionOf(store, quad.object));
       this.suggestibleBuilder.addTypePathTarget(
         null, quad.subject as RDF.NamedNode, { type: quad.object }
       )
