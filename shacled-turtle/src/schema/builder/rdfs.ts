@@ -29,7 +29,7 @@ export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore
     );
 
     builder.suggestibleBuilder.addTypePath(
-      quad.object, quad.subject as RDF.NamedNode, OntologyBuilder.descriptionOf(store, quad.object)
+      quad.object, quad.subject as RDF.NamedNode, OntologyBuilder.descriptionOf(store, quad.subject)
     );
   }
 

@@ -43,7 +43,7 @@ export default function addSHACL(builder: OntologyBuilder, store: RDF.DatasetCor
       );
 
       builder.suggestibleBuilder.addShapePath(
-        shapeName, predicate as RDF.NamedNode, new Description()
+        shapeName, predicate as RDF.NamedNode, OntologyBuilder.descriptionOf(store, predicate)
       );
     }
 
