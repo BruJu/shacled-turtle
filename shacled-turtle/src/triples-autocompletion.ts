@@ -39,6 +39,40 @@ export function tripleAutocompletion(
   if (localized === null) {
     return null;
   }
+  
+  function makeDescription(o: RDF.Term) {
+    function stringify(set: TermSet) {
+      let relevant = new TermSet();
+
+      for (const term of set) {
+        if (term.termType === "NamedNode") {
+          relevant.add(term);
+        }
+      }
+
+      if (relevant.size === 0) return "";
+
+      return [...relevant].map(term => termToCompletionLabel(term, directives)).join(", ");
+    }
+
+    const types = current.meta.types.getAll(o);
+    const shapes = current.meta.shapes.getAll(o);
+
+    const typesStr = stringify(types);
+    const shapesStr = stringify(shapes);
+
+    const d = new Description();
+
+    if (typesStr !== "") {
+      d.comments.add(DataFactory.literal("Types of the resource: " + typesStr));
+    }
+
+    if (shapesStr !== "") {
+      d.comments.add(DataFactory.literal("Conforms to shapes: " + shapesStr));
+    }
+
+    return d;
+  }
 
   if (localized.currentSVO === SVO.Subject) {
     //if (compCtx.explicit === false) return null;
@@ -56,7 +90,7 @@ export function tripleAutocompletion(
 
     return {
       from: word.from,
-      options: [...possiblesTerms].map(term => suggestionToCompletion(term, new Description(), directives)),
+      options: [...possiblesTerms].map(term => suggestionToCompletion(term, makeDescription(term), directives)),
       filter: !compCtx.explicit
     };
   }
@@ -133,7 +167,7 @@ export function tripleAutocompletion(
         ));
 
       options = suggestionsToCompletions(
-        objects.map(o => ({ term: o, description: new Description() })),
+        objects.map(o => ({ term: o, description: makeDescription(o) })),
         directives
       );
     }
@@ -231,7 +265,7 @@ function suggestionToCompletion(
   }
 
   const descriptions = getStrings('comments');
-  if (descriptions) res.info = descriptions.join("<br>");
+  if (descriptions) res.info = descriptions.join("\n");
 
   return res;
 }
