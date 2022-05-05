@@ -1,6 +1,5 @@
 import * as RDF from '@rdfjs/types';
 import { ns } from '../../namespaces';
-import Description from '../Description';
 import OntologyBuilder from './index';
 import PropertyHierarchy from './PropertyHierarchy';
 
@@ -30,7 +29,7 @@ export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore
     );
 
     builder.suggestibleBuilder.addTypePath(
-      quad.object, quad.subject as RDF.NamedNode, new Description()
+      quad.object, quad.subject as RDF.NamedNode, OntologyBuilder.descriptionOf(store, quad.object)
     );
   }
 
