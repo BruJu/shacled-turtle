@@ -12,3 +12,25 @@ ex:Start a sh:NodeShape ;
     sh:path [ sh:inversePath ( ex:a ex:b ) ] ;
     sh:node ex:Target
   ] .
+
+
+# These two shapes should be equivalent
+
+ex:InverseAlternativeTest a sh:NodeShape ;
+  sh:targetNode ex:inverseAlternative ;
+  sh:property [
+    sh:path [ sh:inversePath [
+      sh:alternativePath ( ex:a ex:b )
+    ] ] ;
+    sh:node ex:Target
+  ] .
+
+ex:AlternativeInverseTest a sh:NodeShape ;
+  sh:targetNode ex:alternativeInverse ;
+  sh:property [
+    sh:path [ sh:alternativePath (
+      [ sh:inversePath ex:a ]
+      [ sh:inversePath ex:b ] 
+    ) ] ;
+    sh:node ex:Target
+  ] .

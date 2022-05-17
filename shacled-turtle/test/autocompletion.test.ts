@@ -235,6 +235,20 @@ describe("Suggestion of predicates", () => {
   );
 
   generateUnitTest(
+    'empty.ttl',
+    'inverse-schema.ttl',
+    [
+      { on: ex.alternativeInverse, expect: [] },
+      { addQuad: $quad(ex.alternativeInverseF, ex.b, ex.alternativeInverse) },
+      { on: ex.alternativeInverseF, expect: [ex.ok] },
+
+      { on: ex.inverseAlternative, expect: [] },
+      { addQuad: $quad(ex.inverseAlternativeF, ex.b, ex.inverseAlternative) },
+      { on: ex.inverseAlternativeF, expect: [ex.ok] },
+    ]
+  );
+
+  generateUnitTest(
     "empty.ttl",
     "edge-case-01.ttl",
     [
