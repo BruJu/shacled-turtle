@@ -15,13 +15,18 @@ import { ns } from "../../namespaces";
  * a unique shape.
  * @param pathName The name of the path
  * @param shapeGraph The shape graph
- * @param writer The object to get terms for the different states of the
- * automata
+ * @param startShape The starting shape
+ * @param endShape The ending shape is any
+ * @param generateBlankShape A function that generates a fresh blank node at
+ * each call
  * @returns The list of the transitions of the automata if the path is valid,
  * false if the path is invalid.
  */
 export default function writePath(
-  pathName: RDF.Term, shapeGraph: RDF.DatasetCore, writer: PathWriter
+  pathName: RDF.Term, shapeGraph: RDF.DatasetCore,
+  startShape: RDF.Term,
+  endShape: RDF.Term | null,
+  generateBlankShape: () => RDF.BlankNode
 ): { transitions: RDFAutomataTransition[], ends: TermSet<RDF.Term> } | false {
   // Convert path to finite state automata
   const composedAutomata = decompose(pathName, shapeGraph);
@@ -34,21 +39,21 @@ export default function writePath(
   function getNodeTypeOfStateId(id: number): RDF.Term {
     let r = stateIdToTerm.get(id);
     if (r === undefined) {
-      r = writer.generateBlankType();
+      r = generateBlankShape();
       stateIdToTerm.set(id, r);
     }
     return r;
   }
 
-  stateIdToTerm.set(pathAutomata.start.id, writer.startType);
+  let transitions: RDFAutomataTransition[] = [
+    { type: "epsilon", from: startShape, to: getNodeTypeOfStateId(pathAutomata.start.id) }
+  ];
 
-  let transitions: RDFAutomataTransition[] = [];
-
-  if (writer.endType !== null) {
+  if (endShape !== null) {
     for (const end of pathAutomata.ends) {
       const node = getNodeTypeOfStateId(end.id);
       transitions.push({
-        type: "epsilon", from: node, to: writer.endType
+        type: "epsilon", from: node, to: endShape
       });
     }
   }
@@ -74,20 +79,6 @@ export default function writePath(
     ends: new TermSet(pathAutomata.ends.map(g => getNodeTypeOfStateId(g.id)))
   };
 }
-
-export interface PathWriter {
-  /** The type that corresponds to the initial state */
-  readonly startType: RDF.Term;
-  
-  /**
-   * The type that corresponds to the final state. Returns null if a new blank
-   * type should be generated instead
-   */
-  readonly endType: RDF.Term | null;
-  
-  /** Generates a new blank node for a state */
-  generateBlankType(): RDF.BlankNode
-};
 
 /** A transition in the automata */
 export type RDFAutomataTransition = EpsilonTransition | OutcomingTransition | IncomingTransition;

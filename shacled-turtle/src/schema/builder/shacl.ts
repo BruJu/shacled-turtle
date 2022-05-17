@@ -5,7 +5,7 @@ import * as n3 from 'n3';
 import { $defaultGraph, $quad, ns } from '../../namespaces';
 import Description from '../Description';
 import OntologyBuilder from './index';
-import addPath, { PathWriter } from './PathDecomposer';
+import addPath from './PathDecomposer';
 
 /**
  * Adds rules to the ontology related to SHACL
@@ -173,13 +173,10 @@ function readPathsOfShape(
     const endTypes = store.match(property, ns.sh.node, null, $defaultGraph);
     const endType = endTypes.size === 0 ? null : [...endTypes][0].object;
 
-    const usableNodes: PathWriter = {
-      startType: shapeName, endType: endType,
-      generateBlankType: () => generator.generate()
-    };
-
     for (const pathValueQuad of pathValues) {
-      const transitions = addPath(pathValueQuad.object, store, usableNodes);
+      const transitions = addPath(pathValueQuad.object, store, 
+        shapeName, endType, () => generator.generate()
+        );
 
       if (transitions !== false) {
         for (const transition of transitions.transitions) {

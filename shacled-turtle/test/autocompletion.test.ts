@@ -233,6 +233,15 @@ describe("Suggestion of predicates", () => {
       { on: ex.finish, expect: [ ex.ok ] }
     ]
   );
+
+  generateUnitTest(
+    "empty.ttl",
+    "edge-case-01.ttl",
+    [
+      { addQuad: $quad(ex.start, ex.a, ex.instance) },
+      { on: ex.instance, expect: [ ex.ok, ex.a ] }
+    ]
+  );
 });
 
 type Operation =
