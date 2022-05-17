@@ -123,7 +123,7 @@ function decompose(
       const original = decompose(t.pathName, shapeGraph);
       /* istanbul ignore if */
       if (original === null) return null;
-      return AC.modifyTransitions(original,
+      return AC.inverse(original,
         symbol => {
           if (symbol[0] === "+") return "-" + symbol.slice(1);
           else return "+" + symbol.slice(1);

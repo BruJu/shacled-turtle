@@ -222,6 +222,17 @@ describe("Suggestion of predicates", () => {
       { on: ex.target12_mult, expect: [] },
     ]
   );
+
+
+  generateUnitTest(
+    'empty.ttl',
+    'inverse-schema.ttl',
+    [
+      { addQuad: $quad(ex.intermediate, ex.b, ex.start) },
+      { addQuad: $quad(ex.finish, ex.a, ex.intermediate) },
+      { on: ex.finish, expect: [ ex.ok ] }
+    ]
+  );
 });
 
 type Operation =
