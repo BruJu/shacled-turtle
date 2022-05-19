@@ -9,7 +9,7 @@ const dataWrapper = document.getElementById("editor_data")!;
 const shaclGraph = "https://gist.githubusercontent.com/BruJu/08d39fc77b6eeea8ecd5a632409940f6/raw/1515bb5c59516d68f10c0d06a7dcce67ffc818d1/shacl.shape.ttl";
 
 const minHeightEditor = EditorView.theme({
-  "&": {height: "400px", "max-height": "400px", width: "600px"},
+  "&": {height: "400px", "max-height": "400px", width: "700px"},
   ".cm-scroller": {overflow: "auto"},
   ".cm-content, .cm-gutter": {"max-height": "400px"}
 });
@@ -25,10 +25,11 @@ const dataEditor = new ContextCodeEditor(dataWrapper,
   [minHeightEditor],
   undefined,
 initialDocument() +
-`ex:Alice rdf:type ex:Person 
-# If you start typing "; ex:", ex:name will be suggested
-
- .`
+`ex:Alice rdf:type ex:Person ; 
+# If you start typing "ex:", both ex:name and ex:memberOf will be suggested
+  
+.
+`
 );
 
 const initialShapeGraph = `@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
@@ -38,15 +39,29 @@ const initialShapeGraph = `@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax
 @prefix sh: <http://www.w3.org/ns/shacl#> .
 
 
-# A Person
+# A Person in SHACL
 ex:PersonShape a sh:NodeShape ;
   sh:targetClass ex:Person ;
   # can have a name
   sh:property [
     sh:path ex:name ;
-    sh:nodeKind sh:Literal
+    sh:nodeKind sh:Literal ;
+    sh:name "Name" ;
+    sh:description "The name of a person"
   ] .
-  
+
+# Organization membership in RDFS
+ex:memberOf
+  rdfs:domain ex:Person ;
+  rdfs:range ex:Organization ;
+  rdfs:label "Member of an organization" ;
+  rdfs:comment "Links a person with an organization that they are member of." .
+
+ex:founder
+  rdfs:domain ex:Organization ;
+  rdfs:range ex:Person ;
+  rdfs:label "Founder of the organization" ;
+  rdfs:comment "The person who founded the organization." .
 `;
 
 let currentShapeGraph: RDF.Quad[] = [];
@@ -74,5 +89,4 @@ const shaclEditor = new ContextCodeEditor(
   initialShapeGraph
 );
 
-shaclEditor.changeSchema(shaclGraph,);
-
+shaclEditor.changeSchema(shaclGraph);
