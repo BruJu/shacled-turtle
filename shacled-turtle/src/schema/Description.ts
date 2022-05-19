@@ -43,6 +43,7 @@ export default class Description {
     const self = new Description();
     Description.insertInto(store, target, n3.DataFactory.namedNode("http://www.w3.org/ns/shacl#name"), self.labels);
     Description.insertInto(store, target, ns.sh.comment, self.comments);
+    Description.insertInto(store, target, ns.sh.description, self.comments);
     return self;
   }
   
