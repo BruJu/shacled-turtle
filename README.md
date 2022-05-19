@@ -3,8 +3,14 @@
 Turtle language support for [Code Mirror 6](https://codemirror.net/6/) that uses
 an RDFS + SHACL graph to provide auto completion.
 
+
+***You can test Shacled Turtle online on this page: https://bruy.at/demo/shacled-turtle/demo.html***
+
+***You can also participate to an evaluation: https://shacled-turtle-eval.bruy.at/***
+
 This repository also provides a basic demonstration of
 [PREC](https://github.com/BruJu/PREC) on a web browser.
+
 
 ## Getting started
 
