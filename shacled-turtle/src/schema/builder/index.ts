@@ -1,8 +1,8 @@
 import * as RDF from "@rdfjs/types";
 import Schema from "..";
 import Description from "../Description";
-import InferenceDBBuilder from "./DBBuilder-Inference";
-import SuggestionDBBuilder from "./DBBuilder-Suggestion";
+import InferenceEngineBuilder from "./InferenceEngineBuilder";
+import SuggestionEngineBuilder from "./SuggestionEngineBuilder";
 import addRDFS from "./rdfs";
 import addSHACL from "./shacl";
 import rdfNamespace from "@rdfjs/namespace";
@@ -11,8 +11,8 @@ import { $defaultGraph } from "../../namespaces";
 /** A builder for a schema. */
 // Mainly used to split the code related to RDFS and SHACL in two separates files
 export default class SchemaBuilder {
-  readonly rulesBuilder: InferenceDBBuilder = new InferenceDBBuilder();
-  readonly suggestibleBuilder: SuggestionDBBuilder = new SuggestionDBBuilder();
+  readonly rulesBuilder: InferenceEngineBuilder = new InferenceEngineBuilder();
+  readonly suggestibleBuilder: SuggestionEngineBuilder = new SuggestionEngineBuilder();
 
   addRDFS(store: RDF.DatasetCore) { addRDFS(this, store); }
   addSHACL(store: RDF.DatasetCore) { addSHACL(this, store); }

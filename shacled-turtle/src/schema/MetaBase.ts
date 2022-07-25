@@ -4,7 +4,7 @@ import * as RDF from "@rdfjs/types";
 import Schema from ".";
 import { addTermPairInTermMultiMap } from "../util";
 import { MetaBaseInterface, MetaBaseInterfaceComponent } from "./MetaBaseInterface";
-import { TypesAndShapes } from "./SubDB-Suggestion";
+import { TypesAndShapes } from "./SuggestionEngine";
 
 /**
  * Storage for the metadata of a dataset. Metadata are defined as for each RDF
@@ -21,11 +21,11 @@ export default class MetaBase implements MetaBaseInterface {
 
   constructor(schema: Schema) {
     this.schema = schema;
-    schema.ruleset.addAxioms(this);
+    schema.inferenceEngine.addAxioms(this);
   }
   
   onNewTriple(quad: RDF.Quad, data: RDF.DatasetCore) {
-    this.schema.ruleset.onNewTriple(quad, data, this);
+    this.schema.inferenceEngine.onNewTriple(quad, data, this);
   }
 
   getObjectsOfType(types: TypesAndShapes): TermSet<RDF.Term> {

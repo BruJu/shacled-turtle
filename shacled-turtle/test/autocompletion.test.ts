@@ -8,7 +8,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as n3 from "n3";
 import parseFullDocument from "../src/FullParser";
-import { TypesAndShapes } from "../src/schema/SubDB-Suggestion";
+import { TypesAndShapes } from "../src/schema/SuggestionEngine";
 
 const $quad = n3.DataFactory.quad;
 const $lit = n3.DataFactory.literal;
@@ -68,7 +68,7 @@ describe("Suggestion of predicates", () => {
         const op = operations[i];
         if ('addQuad' in op) {
           data.add(op.addQuad);
-          schema.ruleset.onNewTriple(op.addQuad, data, meta);
+          schema.inferenceEngine.onNewTriple(op.addQuad, data, meta);
         } else {
           const suggested = getSuggestedPredicates(meta, schema, op.on);
           assertSame(
@@ -280,7 +280,7 @@ function getSuggestedPredicates(
   subject: RDF.Quad_Subject
 ): TermSet<RDF.Term> {
   return new TermSet(
-    schema.suggestible.getAllPathsFor(
+    schema.suggestionEngine.getAllPathsFor(
       TypesAndShapes.from(
         meta.types.getAll(subject),
         meta.shapes.getAll(subject)

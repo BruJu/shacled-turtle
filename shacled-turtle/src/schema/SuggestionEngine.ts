@@ -2,7 +2,7 @@ import TermMap from "@rdfjs/term-map";
 import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
 import { getWithDefault } from "../util";
-import SuggestionDBBuilder from "./builder/DBBuilder-Suggestion";
+import SuggestionEngineBuilder from "./builder/SuggestionEngineBuilder";
 import Description from "./Description";
 
 /** An RDF term suggestion */
@@ -61,14 +61,14 @@ export class FollowingSuggestion {
   object: TypesAndShapes = new TypesAndShapes();
 };
 
-export default class SuggestionDatabase {
+export default class SuggestionEngine {
   private readonly existingTypes: Suggestion[];
   private readonly subjectTypingPredicates: Suggestion[];
   private readonly followingTypePaths: TermMap<RDF.NamedNode, Suggestions>;
   private readonly followingShapePaths: TermMap<RDF.Term, Suggestions>;
   private readonly endFromAny: TermMap<RDF.Term, TypesAndShapes>;
 
-  constructor(builder: SuggestionDBBuilder) {
+  constructor(builder: SuggestionEngineBuilder) {
     this.existingTypes = Suggestions.get(builder.existingTypes);
     this.subjectTypingPredicates = Suggestions.get(builder.subjectTypingPredicates);
     this.followingTypePaths = builder.followingTypePaths;

@@ -2,12 +2,12 @@ import TermMap from "@rdfjs/term-map";
 import * as RDF from "@rdfjs/types";
 import { getWithDefault } from "../../util";
 import Description from "../Description";
-import SuggestionDatabase, { Suggestions, TypesAndShapes } from "../SubDB-Suggestion";
+import SuggestionEngine, { Suggestions, TypesAndShapes } from "../SuggestionEngine";
 
 /**
  * Builder for the suggestion database
  */
-export default class SuggestionDBBuilder {
+export default class SuggestionEnegineBuilder {
   readonly subjectTypingPredicates = new Suggestions();
   readonly existingTypes = new Suggestions();
   readonly followingTypePaths = new TermMap<RDF.NamedNode, Suggestions>();
@@ -57,7 +57,7 @@ export default class SuggestionDBBuilder {
     }
   }
 
-  build(): SuggestionDatabase {
-    return new SuggestionDatabase(this);
+  build(): SuggestionEngine {
+    return new SuggestionEngine(this);
   }
 }

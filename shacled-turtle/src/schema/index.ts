@@ -1,25 +1,26 @@
 import * as RDF from "@rdfjs/types";
 import SchemaBuilder from "./builder";
-import InferenceDatabase from "./SubDB-Inference";
-import SuggestionDatabase, { Suggestion } from './SubDB-Suggestion';
+import InferenceEngine from "./InferenceEngine";
+import SuggestionEngine, { Suggestion } from './SuggestionEngine';
 
 // Term suggestion database that resorts to a SHACL shape graph.
 
 // A SHACL shape graph is supposed to be used to validate an RDF graph. The
 // specification also gives building forms as an example.
 //
-// Here, we use the shape graph to power up an autocompletion engine ?
+// Here, we use the shape graph to power up an autocompletion engine
 
 /**
- * A loaded schema used for autocompletion.
+ * A loaded schema used for autocompletion = the two engines used by
+ * Shacled Turtle with the rules loaded
  */
 export default class Schema {
-  readonly ruleset: InferenceDatabase;
-  readonly suggestible: SuggestionDatabase;
+  readonly inferenceEngine: InferenceEngine;
+  readonly suggestionEngine: SuggestionEngine;
 
-  constructor(ruleset: InferenceDatabase, suggestible: SuggestionDatabase) {
-    this.ruleset = ruleset;
-    this.suggestible = suggestible;
+  constructor(inferenceEngine: InferenceEngine, suggestionEngine: SuggestionEngine) {
+    this.inferenceEngine = inferenceEngine;
+    this.suggestionEngine = suggestionEngine;
   }
 
   /**
@@ -41,7 +42,7 @@ export default class Schema {
    * uses = types for which we will be able to suggest some predicates for their
    * instances.
    */
-   getAllTypes(): Suggestion[] {
-    return this.suggestible.getTypes();
+  getAllTypes(): Suggestion[] {
+    return this.suggestionEngine.getTypes();
   }
 }

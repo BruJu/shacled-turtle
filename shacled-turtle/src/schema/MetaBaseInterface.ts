@@ -1,6 +1,6 @@
 import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
-import { TypesAndShapes } from "./SubDB-Suggestion";
+import { TypesAndShapes } from "./SuggestionEngine";
 
 /** Storage for the list of types and shapes of all resources */
 export interface MetaBaseInterface {

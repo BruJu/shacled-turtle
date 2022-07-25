@@ -1,7 +1,7 @@
 import * as RDF from "@rdfjs/types";
 import { termToString } from "rdf-string";
 import { $quad as $$quad, $variable, ns } from "../../namespaces";
-import InferenceDatabase, { LogicRule, MetaInfo } from "../SubDB-Inference";
+import InferenceEngine, { LogicRule, MetaTriple } from "../InferenceEngine";
 
 function $quad(subject: RDF.Term, predicate: RDF.Term, object: RDF.Term) {
   return $$quad(
@@ -31,7 +31,7 @@ type Rule = {
  * Maps all elementary RDFS and SHACL rules into an inference rule in our
  * system.
  */
-export default class InferenceDBBuilder {
+export default class InferenceEngineBuilder {
   readonly producer: RuleProducer = new RuleProducer();
   readonly rules: Rule[] = [];
 
@@ -91,9 +91,9 @@ export default class InferenceDBBuilder {
   }
   
 
-  build(): InferenceDatabase {
+  build(): InferenceEngine {
     const logicRules = this.rules.map(rule => toLogicRule(rule));
-    return new InferenceDatabase(logicRules);
+    return new InferenceEngine(logicRules);
   }
 }
 
@@ -195,7 +195,7 @@ function toLogicRule(buildRule: Rule): LogicRule {
     return term;
   }
 
-  function mapMeta(term: RDF.Quad): MetaInfo {
+  function mapMeta(term: RDF.Quad): MetaTriple {
     if (term.predicate.equals(ns.rdf.type)) {
       return {
         resource: term.subject,

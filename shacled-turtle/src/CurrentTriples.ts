@@ -8,11 +8,12 @@ import * as n3 from "n3";
  * types and shapes for all resources in the dataset.
  */
 export default class CurrentTriples {
+  // The inference and the suggestion engine
   readonly schema: Schema;
+  // The list of complete triples
   readonly completeTriples = new n3.Store();
+  // The metabase state
   readonly metaBase: MetaBase;
-
-  stableUntil: number = 0;
 
   constructor(schema: Schema) {
     this.schema = schema;
@@ -21,7 +22,7 @@ export default class CurrentTriples {
 
   add(triple: RDF.Quad): void {
     this.completeTriples.add(triple);
-    this.schema.ruleset.onNewTriple(triple, this.completeTriples, this.metaBase);
+    this.schema.inferenceEngine.onNewTriple(triple, this.completeTriples, this.metaBase);
   }  
 }
 

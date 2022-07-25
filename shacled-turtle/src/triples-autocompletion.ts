@@ -10,7 +10,7 @@ import DebugInformation from './DebugInformation';
 import { ns } from './namespaces';
 import Schema from './schema';
 import Description from './schema/Description';
-import { Suggestion, TypesAndShapes } from './schema/SubDB-Suggestion';
+import { Suggestion, TypesAndShapes } from './schema/SuggestionEngine';
 import * as STParser from './Parser';
 import CurrentTriples from './CurrentTriples';
 import shacledTurtleField from './StateField';
@@ -129,7 +129,7 @@ export function tripleAutocompletion(
     const types = current.metaBase.types.getAll(localized.currentSubject);
     const shapes = current.metaBase.shapes.getAll(localized.currentSubject);
 
-    const possiblePredicates = suggestions.suggestible.getAllPathsFor(
+    const possiblePredicates = suggestions.suggestionEngine.getAllPathsFor(
       TypesAndShapes.from(types, shapes)
     );
 
@@ -155,7 +155,7 @@ export function tripleAutocompletion(
         current.metaBase.shapes.getAll(localized.currentSubject)
       );
 
-      const objectTOS = suggestions.suggestible.getPossibleObjectShape(
+      const objectTOS = suggestions.suggestionEngine.getPossibleObjectShape(
         subjectTOS, localized.currentPredicate
       );
 

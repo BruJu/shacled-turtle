@@ -1,7 +1,7 @@
 import { SyntaxNode } from '@lezer/common';
 import * as RDF from '@rdfjs/types';
 import { MetaBaseInterface } from './schema/MetaBaseInterface';
-import { TypesAndShapes } from './schema/SubDB-Suggestion';
+import { TypesAndShapes } from './schema/SuggestionEngine';
 
 /**
  * A structure that contains information about the current position.

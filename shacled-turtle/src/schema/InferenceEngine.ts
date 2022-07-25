@@ -11,13 +11,13 @@ export type LogicRule = {
   /** Data triple pattern */
   dataBody: RDF.Quad | null;
   /** Meta triple pattern */
-  metaBody: MetaInfo | null;
+  metaBody: MetaTriple | null;
   /** Produced meta triple pattern */
-  metaHead: MetaInfo;
+  metaHead: MetaTriple;
 };
 
 /** A meta triple template pattern */
-export type MetaInfo = {
+export type MetaTriple = {
   resource: RDF.Term;
   /**
    * - types = the value is of type target
@@ -28,7 +28,7 @@ export type MetaInfo = {
   shape: RDF.Term
 };
 
-export default class InferenceDatabase {
+export default class InferenceEngine {
   /**
    * Predicate of the data triple to the list of logic rules to check.
    * Used as a starting point when a triple is added in the data.
@@ -124,7 +124,7 @@ export default class InferenceDatabase {
    * newTriples.
    * Returns the list of inffered meta triples
    */
-  private addTriple(newTriple: RDF.Quad, metaBase: MetaBaseInterface): Array<MetaInfo> | null {
+  private addTriple(newTriple: RDF.Quad, metaBase: MetaBaseInterface): Array<MetaTriple> | null {
     // Find all rules that can use newTriple as a premice
     const relevantRules = this.dataPredicateToRules.get(newTriple.predicate);
     if (relevantRules === undefined) return null;
@@ -146,7 +146,7 @@ export default class InferenceDatabase {
     }
 
     /** List of added meta information */
-    let inferredMeta: Array<MetaInfo> = [];
+    let inferredMeta: Array<MetaTriple> = [];
 
     for (const tripleBasedRule of relevantRules) {
       if (tripleBasedRule.metaBody === null) {
@@ -179,7 +179,7 @@ export default class InferenceDatabase {
    * @param database The data dataset
    * @param metaBase The meta dataset
    */
-  private closeMeta(inferred: Array<MetaInfo>, database: RDF.DatasetCore, metaBase: MetaBaseInterface) {
+  private closeMeta(inferred: Array<MetaTriple>, database: RDF.DatasetCore, metaBase: MetaBaseInterface) {
     const newMetaInformations = Queue.from(inferred);
 
     while (true) {
@@ -237,7 +237,7 @@ class VariableStorage {
   }
 }
 
-function buildConcreteHead(rule: LogicRule, data: RDF.Quad | null, meta: MetaInfo | null): MetaInfo {
+function buildConcreteHead(rule: LogicRule, data: RDF.Quad | null, meta: MetaTriple | null): MetaTriple {
   let s = new VariableStorage();
 
   if (data !== null && rule.dataBody !== null) {
@@ -257,6 +257,6 @@ function buildConcreteHead(rule: LogicRule, data: RDF.Quad | null, meta: MetaInf
   };
 }
 
-function addInMeta(metaBase: MetaBaseInterface, n: MetaInfo): boolean {
+function addInMeta(metaBase: MetaBaseInterface, n: MetaTriple): boolean {
   return metaBase[n.kind].add(n.resource, n.shape);
 }

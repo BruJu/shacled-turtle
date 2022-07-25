@@ -6,15 +6,15 @@ import { ns, $defaultGraph } from '../../namespaces';
 
 export default class PropertyHierarchy {
   private readonly propertyToSuperProperties: PropertyMapping = new PropertyMapping();
-  private readonly propertyTOSubProperties: PropertyMapping = new PropertyMapping();
+  private readonly propertyToSubProperties: PropertyMapping = new PropertyMapping();
 
   constructor(store: RDF.DatasetCore) {
     for (const quad of store.match(null, ns.rdfs.subPropertyOf, null, $defaultGraph)) {
       this.propertyToSuperProperties.addPair(quad.subject, quad.object);
-      this.propertyTOSubProperties.addPair(quad.object, quad.subject);
+      this.propertyToSubProperties.addPair(quad.object, quad.subject);
     }
 
-    this.propertyTOSubProperties.computeClosure();
+    this.propertyToSubProperties.computeClosure();
     this.propertyToSuperProperties.computeClosure();
   }
 
@@ -23,7 +23,7 @@ export default class PropertyHierarchy {
   }
 
   forAllSubOf(property: RDF.Term, consumer: (term: RDF.Term) => void) {
-    this.propertyTOSubProperties.forEachAt(property, consumer);
+    this.propertyToSubProperties.forEachAt(property, consumer);
   }
 }
 
