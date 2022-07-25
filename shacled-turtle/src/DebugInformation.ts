@@ -1,7 +1,7 @@
 import { SyntaxNode } from '@lezer/common';
 import * as RDF from '@rdfjs/types';
+import { MetaBaseInterface } from './schema/MetaDataInterface';
 import { TypesAndShapes } from './schema/SubDB-Suggestion';
-import DoubleMeta from './state/DoubleMeta';
 
 /**
  * A structure that contains information about the current position.
@@ -37,7 +37,7 @@ export default class DebugInformation {
     this.hierarchy = computeHierarchy(theNode);
   }
 
-  setSubject(text: string, term: RDF.Quad_Subject, meta: DoubleMeta) {
+  setSubject(text: string, term: RDF.Quad_Subject, meta: MetaBaseInterface) {
     this.subject = {
       text: text,
       term: term,

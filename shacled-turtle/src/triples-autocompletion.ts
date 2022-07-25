@@ -12,7 +12,7 @@ import Schema from './schema';
 import Description from './schema/Description';
 import { Suggestion, TypesAndShapes } from './schema/SubDB-Suggestion';
 import * as STParser from './Parser';
-import CurrentTriples from './state/CurrentState';
+import CurrentTriples from './CurrentTriples';
 import shacledTurtleField from './StateField';
 import TermSet from '@rdfjs/term-set';
 import { DataFactory } from 'n3';
@@ -55,8 +55,8 @@ export function tripleAutocompletion(
       return [...relevant].map(term => termToCompletionLabel(term, directives)).join(", ");
     }
 
-    const types = current.meta.types.getAll(o);
-    const shapes = current.meta.shapes.getAll(o);
+    const types = current.metaBase.types.getAll(o);
+    const shapes = current.metaBase.shapes.getAll(o);
 
     const typesStr = stringify(types);
     const shapesStr = stringify(shapes);
@@ -83,7 +83,7 @@ export function tripleAutocompletion(
       return term.termType !== 'BlankNode' || !term.value.startsWith("_shacled")
     }
 
-    for (const quad of current.dataset) {
+    for (const quad of current.completeTriples) {
       if (isPossible(quad.subject)) possiblesTerms.add(quad.subject);
       if (isPossible(quad.object)) possiblesTerms.add(quad.object);
     }
@@ -121,13 +121,13 @@ export function tripleAutocompletion(
     }
   }
 
-  situation.setSubject(localized.subjectToken, localized.currentSubject, current.meta);
+  situation.setSubject(localized.subjectToken, localized.currentSubject, current.metaBase);
 
   let options: Completion[] = [];
 
   if (localized.currentSVO === SVO.Verb) {
-    const types = current.meta.types.getAll(localized.currentSubject);
-    const shapes = current.meta.shapes.getAll(localized.currentSubject);
+    const types = current.metaBase.types.getAll(localized.currentSubject);
+    const shapes = current.metaBase.shapes.getAll(localized.currentSubject);
 
     const possiblePredicates = suggestions.suggestible.getAllPathsFor(
       TypesAndShapes.from(types, shapes)
@@ -151,8 +151,8 @@ export function tripleAutocompletion(
       options = suggestionsToCompletions(suggestions.getAllTypes(), directives);
     } else {
       const subjectTOS = TypesAndShapes.from(
-        current.meta.types.getAll(localized.currentSubject),
-        current.meta.shapes.getAll(localized.currentSubject)
+        current.metaBase.types.getAll(localized.currentSubject),
+        current.metaBase.shapes.getAll(localized.currentSubject)
       );
 
       const objectTOS = suggestions.suggestible.getPossibleObjectShape(
@@ -161,7 +161,7 @@ export function tripleAutocompletion(
 
       situation.setObject(objectTOS);
 
-      const objects = [...current.meta.getObjectsOfType(objectTOS)]
+      const objects = [...current.metaBase.getObjectsOfType(objectTOS)]
         .filter(t => t.termType === "NamedNode" || (
           t.termType === "BlankNode" && !t.value.startsWith("_shacled")
         ));

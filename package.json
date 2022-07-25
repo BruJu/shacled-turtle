@@ -2,7 +2,6 @@
   "name": "prec-demo",
   "workspaces": [
     "demo",
-    "precdemo-backend",
     "lang-turtle",
     "shacled-turtle"
   ],

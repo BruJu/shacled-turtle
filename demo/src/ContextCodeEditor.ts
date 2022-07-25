@@ -1,10 +1,21 @@
 import { basicSetup } from "@codemirror/basic-setup";
 import { EditorState, Extension } from "@codemirror/state";
 import { EditorView, placeholder } from "@codemirror/view";
-import { ns } from "./PRECNamespace";
 import { shacledTurtle, changeSchema, ShacledTurtleOptions } from "shacled-turtle";
 import axios from 'axios';
 import * as n3 from "n3";
+import namespace from '@rdfjs/namespace';
+
+const N3Factory = { factory: n3.DataFactory };
+
+const ns = {
+  rdf : namespace("http://www.w3.org/1999/02/22-rdf-syntax-ns#", N3Factory),
+  rdfs: namespace("http://www.w3.org/2000/01/rdf-schema#"      , N3Factory),
+  xsd : namespace("http://www.w3.org/2001/XMLSchema#"          , N3Factory),
+  ex  : namespace("http://www.example.org/"                    , N3Factory),
+  sh  : namespace("http://www.w3.org/ns/shacl#"                , N3Factory)
+};
+
 
 /**
  * A Code Editor backed by CodeMirror6 specialized in PREC Context writing.
@@ -62,7 +73,7 @@ export default class ContextCodeEditor {
 export function initialDocument() {
   let lines: string[] = [];
 
-  for (const prefix of <const>["rdf", "rdfs", "xsd", "prec", "pvar", "pgo", "ex"]) {
+  for (const prefix of <const>["rdf", "rdfs", "xsd", "ex"]) {
     const builder = ns[prefix];
     if (builder !== undefined) {
       lines.push(`@prefix ${prefix}: <${builder[''].value}> .`);

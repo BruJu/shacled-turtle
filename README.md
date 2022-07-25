@@ -8,9 +8,6 @@ an RDFS + SHACL graph to provide auto completion.
 
 ***You can also participate to an evaluation: https://shacled-turtle-eval.bruy.at/***
 
-This repository also provides a basic demonstration of
-[PREC](https://github.com/BruJu/PREC) on a web browser.
-
 
 ## Getting started
 
@@ -34,9 +31,6 @@ Mirror. It only provide syntactic coloration
 
 - [shacled-turtle](shacled-turtle) is a Code Mirror extension that provides both
 Turtle language support and an autocompletion engine based on a schema graph.
-
-- [precdemo-backend](precdemo-backend) is the backend for the "PREc demonstration"
-demo
 
 
 ## License
