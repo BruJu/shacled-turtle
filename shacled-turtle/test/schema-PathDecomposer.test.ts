@@ -2,7 +2,7 @@ import assert from "assert";
 import * as RDF from "@rdfjs/types";
 import { buildAndRunSchema, loadDataset, ns } from "./utility";
 import { termToString } from "rdf-string";
-import { MetaBaseInterface } from "../src/schema/MetaDataInterface";
+import { MetaBaseInterface } from "../src/schema/MetaBaseInterface";
 
 describe("Schema - Path Decomposer", () => {
   describe("Per equivalence class", () => {

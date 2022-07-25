@@ -3,7 +3,7 @@ import assert from "assert";
 import * as n3 from "n3";
 import { $quad } from "../src/namespaces";
 import Schema from "../src/schema";
-import MetaDataState from "../src/schema/MetaDataState";
+import MetaBase from "../src/schema/MetaBase";
 import { loadDataset, ns } from "./utility";
 
 describe("Schema", () => {
@@ -19,7 +19,7 @@ describe("Schema", () => {
       assert.ok(schema !== null && schema !== undefined);
     });
 
-    const meta = new MetaDataState(schema);
+    const meta = new MetaBase(schema);
 
     const data = new n3.Store();
 

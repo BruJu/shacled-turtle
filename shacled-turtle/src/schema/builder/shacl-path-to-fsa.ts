@@ -22,14 +22,14 @@ import { ns } from "../../namespaces";
  * @returns The list of the transitions of the automata if the path is valid,
  * false if the path is invalid.
  */
-export default function writePath(
+export default function pathToFSA(
   pathName: RDF.Term, shapeGraph: RDF.DatasetCore,
   startShape: RDF.Term,
   endShape: RDF.Term | null,
   generateBlankShape: () => RDF.BlankNode
 ): { transitions: RDFAutomataTransition[], ends: TermSet<RDF.Term> } | false {
   // Convert path to finite state automata
-  const composedAutomata = decompose(pathName, shapeGraph);
+  const composedAutomata = pathToAutomataComposer(pathName, shapeGraph);
   /* istanbul ignore if */
   if (composedAutomata === null) return false;
 
@@ -100,7 +100,7 @@ export type IncomingTransition = { type: "-", from: RDF.Term, predicate: RDF.Nam
  * @param shapeGraph The shape graph
  * @returns The automata composer or null if its not a valid path
  */
-function decompose(
+function pathToAutomataComposer(
   pathName: RDF.Term, shapeGraph: RDF.DatasetCore
 ): AC.AutomataComposer | null {
   const t = typeOfPathOf(pathName, shapeGraph);
@@ -111,7 +111,7 @@ function decompose(
     case "Predicate":
       return AC.unit("+" + termToString(t.predicate));
     case "Inverse": {
-      const original = decompose(t.pathName, shapeGraph);
+      const original = pathToAutomataComposer(t.pathName, shapeGraph);
       /* istanbul ignore if */
       if (original === null) return null;
       return AC.inverse(original,
@@ -122,7 +122,7 @@ function decompose(
       );
     }
     case "Alternative": {
-      const paths = t.pathsName.map(name => decompose(name, shapeGraph));
+      const paths = t.pathsName.map(name => pathToAutomataComposer(name, shapeGraph));
       /* istanbul ignore if */
       if (paths.includes(null)) return null;
 
@@ -134,25 +134,25 @@ function decompose(
       );
     }
     case "Sequence": {
-      const paths = t.pathsName.map(name => decompose(name, shapeGraph));
+      const paths = t.pathsName.map(name => pathToAutomataComposer(name, shapeGraph));
       /* istanbul ignore if */
       if (paths.includes(null)) return null;
       return AC.chain(...paths as AC.AutomataComposer[]);
     }
     case "ZeroOrOne": {
-      const original = decompose(t.pathName, shapeGraph);
+      const original = pathToAutomataComposer(t.pathName, shapeGraph);
       /* istanbul ignore if */
       if (original === null) return null;
       return AC.maybe(original);
     }
     case "OneOrMore": {
-      const original = decompose(t.pathName, shapeGraph);
+      const original = pathToAutomataComposer(t.pathName, shapeGraph);
       /* istanbul ignore if */
       if (original === null) return null;
       return AC.plus(original);
     }
     case "ZeroOrMore": {
-      const original = decompose(t.pathName, shapeGraph);
+      const original = pathToAutomataComposer(t.pathName, shapeGraph);
       /* istanbul ignore if */
       if (original === null) return null;
       return AC.star(original);

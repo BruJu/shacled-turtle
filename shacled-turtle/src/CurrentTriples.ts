@@ -1,6 +1,6 @@
 import * as RDF from "@rdfjs/types";
 import Schema from "./schema";
-import MetaDataState from "./schema/MetaDataState";
+import MetaBase from "./schema/MetaBase";
 import * as n3 from "n3";
 
 /**
@@ -10,13 +10,13 @@ import * as n3 from "n3";
 export default class CurrentTriples {
   readonly schema: Schema;
   readonly completeTriples = new n3.Store();
-  readonly metaBase: MetaDataState;
+  readonly metaBase: MetaBase;
 
   stableUntil: number = 0;
 
   constructor(schema: Schema) {
     this.schema = schema;
-    this.metaBase = new MetaDataState(this.schema);
+    this.metaBase = new MetaBase(this.schema);
   }
 
   add(triple: RDF.Quad): void {

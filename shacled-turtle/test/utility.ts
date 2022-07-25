@@ -1,6 +1,6 @@
 import * as RDF from "@rdfjs/types";
 import * as n3 from "n3";
-import MetaDataState from "../src/schema/MetaDataState";
+import MetaBase from "../src/schema/MetaBase";
 import Schema from "../src/schema";
 import * as baseNamespaces from "../src/namespaces";
 import namespace from '@rdfjs/namespace';
@@ -27,9 +27,9 @@ export function loadDataset(content: string): RDF.DatasetCore {
 export function buildAndRunSchema(
   dataGraph: RDF.DatasetCore,
   schemaGraph: RDF.DatasetCore
-): { schema: Schema, metaData: MetaDataState } {
+): { schema: Schema, metaData: MetaBase } {
   const schema = Schema.make(schemaGraph);
-  const metaData = new MetaDataState(schema);
+  const metaData = new MetaBase(schema);
 
   for (const triple of dataGraph) {
     metaData.onNewTriple(triple, dataGraph);

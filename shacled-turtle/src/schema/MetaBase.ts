@@ -3,7 +3,7 @@ import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
 import Schema from ".";
 import { addTermPairInTermMultiMap } from "../util";
-import { MetaBaseInterface, MetaBaseInterfaceComponent } from "./MetaDataInterface";
+import { MetaBaseInterface, MetaBaseInterfaceComponent } from "./MetaBaseInterface";
 import { TypesAndShapes } from "./SubDB-Suggestion";
 
 /**
@@ -13,11 +13,11 @@ import { TypesAndShapes } from "./SubDB-Suggestion";
  * Stores the corresponding schema to also provide a function to call when
  * a new triple is added.
  */
-export default class MetaDataState implements MetaBaseInterface {
+export default class MetaBase implements MetaBaseInterface {
   /** The schema related to this state */
   private readonly schema: Schema;
-  readonly types: MetaBaseInterfaceComponent = new MetaDataStateComponent();
-  readonly shapes: MetaBaseInterfaceComponent = new MetaDataStateComponent();
+  readonly types: MetaBaseInterfaceComponent = new MetaBaseComponent();
+  readonly shapes: MetaBaseInterfaceComponent = new MetaBaseComponent();
 
   constructor(schema: Schema) {
     this.schema = schema;
@@ -39,8 +39,10 @@ export default class MetaDataState implements MetaBaseInterface {
 /**
  * Basic implementation for `MetaBaseInterfaceComponent` that uses a TermMap.
  */
-export class MetaDataStateComponent implements MetaBaseInterfaceComponent {
+export class MetaBaseComponent implements MetaBaseInterfaceComponent {
+  // Resource -> Type
   readonly data: TermMap<RDF.Term, TermSet> = new TermMap();
+  // Type -> Resource
   readonly classifiedToTerm: TermMap<RDF.Term, TermSet> = new TermMap();
 
   add(resource: RDF.Term, classifier: RDF.Term): boolean {

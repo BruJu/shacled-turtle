@@ -1,14 +1,14 @@
 import * as RDF from '@rdfjs/types';
 import { ns } from '../../namespaces';
-import OntologyBuilder from './index';
+import SchemaBuilder from './index';
 import PropertyHierarchy from './PropertyHierarchy';
 
 /**
- * Adds rules related to RDFS into the ontology
- * @param builder The ontology builder
- * @param store The ontology dataset
+ * Adds rules related to RDFS into the schema
+ * @param builder The schema builder
+ * @param store The schema raw dataset
  */
-export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore) {
+export default function addRDFS(builder: SchemaBuilder, store: RDF.DatasetCore) {
   const propertyHierarchy = new PropertyHierarchy(store);
 
   builder.rulesBuilder.rdfType();
@@ -19,17 +19,17 @@ export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore
       property => {
         builder.rulesBuilder.rdfsDomain(property, quad.object);
         builder.suggestibleBuilder.addTypingPredicate(
-          property, OntologyBuilder.descriptionOf(store, property)
+          property, SchemaBuilder.descriptionOf(store, property)
         );
       }
     );
 
     builder.suggestibleBuilder.addExistingType(
-      quad.object, OntologyBuilder.descriptionOf(store, quad.object)
+      quad.object, SchemaBuilder.descriptionOf(store, quad.object)
     );
 
     builder.suggestibleBuilder.addTypePath(
-      quad.object, quad.subject as RDF.NamedNode, OntologyBuilder.descriptionOf(store, quad.subject)
+      quad.object, quad.subject as RDF.NamedNode, SchemaBuilder.descriptionOf(store, quad.subject)
     );
   }
 
@@ -40,7 +40,7 @@ export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore
     );
 
     builder.suggestibleBuilder.addExistingType(
-      quad.object, OntologyBuilder.descriptionOf(store, quad.object)
+      quad.object, SchemaBuilder.descriptionOf(store, quad.object)
     );
 
     builder.suggestibleBuilder.addTypePathTarget(
@@ -54,7 +54,7 @@ export default function addRDFS(builder: OntologyBuilder, store: RDF.DatasetCore
 
   for (const quad of store.match(null, ns.rdf.type, ns.rdfs.Class)) {
     builder.suggestibleBuilder.addExistingType(
-      quad.subject, OntologyBuilder.descriptionOf(store, quad.subject)
+      quad.subject, SchemaBuilder.descriptionOf(store, quad.subject)
     );
   }
 }

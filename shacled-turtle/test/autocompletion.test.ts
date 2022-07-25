@@ -1,8 +1,8 @@
 import TermSet from "@rdfjs/term-set";
 import * as RDF from "@rdfjs/types";
 import Schema from "../src/schema";
-import { MetaBaseInterface } from "../src/schema/MetaDataInterface";
-import MetaDataState from "../src/schema/MetaDataState";
+import { MetaBaseInterface } from "../src/schema/MetaBaseInterface";
+import MetaBase from "../src/schema/MetaBase";
 import { assertSame, ns, rdfTermToString } from "./utility";
 import * as fs from "fs";
 import * as path from "path";
@@ -268,7 +268,7 @@ type Operation =
 
 
 function computeMeta(dataGraph: RDF.DatasetCore, schema: Schema): MetaBaseInterface {
-  const meta = new MetaDataState(schema);
+  const meta = new MetaBase(schema);
   for (const quad of dataGraph) {
     meta.onNewTriple(quad, dataGraph);
   }

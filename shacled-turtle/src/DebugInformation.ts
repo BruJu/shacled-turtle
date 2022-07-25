@@ -1,6 +1,6 @@
 import { SyntaxNode } from '@lezer/common';
 import * as RDF from '@rdfjs/types';
-import { MetaBaseInterface } from './schema/MetaDataInterface';
+import { MetaBaseInterface } from './schema/MetaBaseInterface';
 import { TypesAndShapes } from './schema/SubDB-Suggestion';
 
 /**
@@ -37,12 +37,12 @@ export default class DebugInformation {
     this.hierarchy = computeHierarchy(theNode);
   }
 
-  setSubject(text: string, term: RDF.Quad_Subject, meta: MetaBaseInterface) {
+  setSubject(text: string, term: RDF.Quad_Subject, metaBase: MetaBaseInterface) {
     this.subject = {
       text: text,
       term: term,
-      types: [...meta.types.getAll(term)],
-      shapes: [...meta.shapes.getAll(term)],
+      types: [...metaBase.types.getAll(term)],
+      shapes: [...metaBase.shapes.getAll(term)],
     };
   }
 

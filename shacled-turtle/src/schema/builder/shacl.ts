@@ -4,11 +4,11 @@ import * as RDF from '@rdfjs/types';
 import * as n3 from 'n3';
 import { $defaultGraph, $quad, ns } from '../../namespaces';
 import Description from '../Description';
-import OntologyBuilder from './index';
-import addPath from './PathDecomposer';
+import SchemaBuilder from './index';
+import pathToFSA from './shacl-path-to-fsa';
 
 /**
- * Adds rules to the ontology related to SHACL
+ * Adds rules to the schema related to SHACL
  * 
  * We consider that SHACL can be seen:
  * - As an inference system -> we infer that some elements must complies with
@@ -17,7 +17,7 @@ import addPath from './PathDecomposer';
  * - As a suggestion engine -> suggest completion related to possibles paths
  * and sh:subjectsOf
  */
-export default function addSHACL(builder: OntologyBuilder, store: RDF.DatasetCore) {
+export default function addSHACL(builder: SchemaBuilder, store: RDF.DatasetCore) {
   let generator = new BlankNodeGenerator();
 
   const shapeNameToShape = extractListOfNodeShapes(store);
@@ -31,7 +31,7 @@ export default function addSHACL(builder: OntologyBuilder, store: RDF.DatasetCor
       builder.rulesBuilder.shTargetClass(shapeName, cl);
 
       builder.suggestibleBuilder.addExistingType(
-        cl, OntologyBuilder.descriptionOf(store, cl)
+        cl, SchemaBuilder.descriptionOf(store, cl)
       );
     }
 
@@ -39,11 +39,11 @@ export default function addSHACL(builder: OntologyBuilder, store: RDF.DatasetCor
       builder.rulesBuilder.shSubjectsOf(shapeName, predicate);
 
       builder.suggestibleBuilder.addTypingPredicate(
-        predicate, OntologyBuilder.descriptionOf(store, predicate)
+        predicate, SchemaBuilder.descriptionOf(store, predicate)
       );
 
       builder.suggestibleBuilder.addShapePath(
-        shapeName, predicate as RDF.NamedNode, OntologyBuilder.descriptionOf(store, predicate)
+        shapeName, predicate as RDF.NamedNode, SchemaBuilder.descriptionOf(store, predicate)
       );
     }
 
@@ -150,13 +150,13 @@ function extractListOfNodeShapes(shapeGraph: RDF.DatasetCore)
 
 /**
  * Read all property path bound to the given shape and 
- * @param ontoBuilder Builder for the ontology
+ * @param schemaBuilder Builder for the schema
  * @param store The RDF/JS dataset
  * @param shapeName The name of the node shape
  * @param generator A unique blank node generator
  */
 function readPathsOfShape(
-  ontoBuilder: OntologyBuilder,
+  schemaBuilder: SchemaBuilder,
   store: RDF.DatasetCore,
   shapeName: RDF.Term, generator: BlankNodeGenerator
 ) {
@@ -174,28 +174,28 @@ function readPathsOfShape(
     const endType = endTypes.size === 0 ? null : [...endTypes][0].object;
 
     for (const pathValueQuad of pathValues) {
-      const transitions = addPath(pathValueQuad.object, store, 
+      const transitions = pathToFSA(pathValueQuad.object, store, 
         shapeName, endType, () => generator.generate()
         );
 
       if (transitions !== false) {
         for (const transition of transitions.transitions) {
           if (transition.type === "epsilon") {
-            ontoBuilder.rulesBuilder.shSubShape(transition.from, transition.to);
+            schemaBuilder.rulesBuilder.shSubShape(transition.from, transition.to);
           } else {
             const { from, predicate, to } = transition;
 
             if (transition.type === "+") {
-              ontoBuilder.rulesBuilder.shPredicatePath(from, predicate, to);
-              ontoBuilder.suggestibleBuilder.addShapePath(from, predicate, pathDescription);
+              schemaBuilder.rulesBuilder.shPredicatePath(from, predicate, to);
+              schemaBuilder.suggestibleBuilder.addShapePath(from, predicate, pathDescription);
 
               if (endType !== null && transitions.ends.has(to)) {
-                ontoBuilder.suggestibleBuilder.addTypePathTarget(
+                schemaBuilder.suggestibleBuilder.addTypePathTarget(
                   { shape: from }, predicate, { shape: endType }
                 )
               }
             } else if (transition.type === "-") {
-              ontoBuilder.rulesBuilder.shInversePredicatePath(to, predicate, from);
+              schemaBuilder.rulesBuilder.shInversePredicatePath(to, predicate, from);
             }
           }
         }

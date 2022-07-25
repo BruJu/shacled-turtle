@@ -4,7 +4,7 @@ import { Queue } from "mnemonist";
 import * as n3 from 'n3';
 import { $defaultGraph } from "../namespaces";
 import { getWithDefault } from "../util";
-import { MetaBaseInterface } from "./MetaDataInterface";
+import { MetaBaseInterface } from "./MetaBaseInterface";
 
 /** A rule in the supported inference system */
 export type LogicRule = {

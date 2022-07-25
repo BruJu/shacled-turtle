@@ -1,5 +1,5 @@
 import * as RDF from "@rdfjs/types";
-import Ontology from "..";
+import Schema from "..";
 import Description from "../Description";
 import InferenceDBBuilder from "./DBBuilder-Inference";
 import SuggestionDBBuilder from "./DBBuilder-Suggestion";
@@ -8,17 +8,17 @@ import addSHACL from "./shacl";
 import rdfNamespace from "@rdfjs/namespace";
 import { $defaultGraph } from "../../namespaces";
 
-/** A builder for an ontology. */
+/** A builder for a schema. */
 // Mainly used to split the code related to RDFS and SHACL in two separates files
-export default class OntologyBuilder {
+export default class SchemaBuilder {
   readonly rulesBuilder: InferenceDBBuilder = new InferenceDBBuilder();
   readonly suggestibleBuilder: SuggestionDBBuilder = new SuggestionDBBuilder();
 
   addRDFS(store: RDF.DatasetCore) { addRDFS(this, store); }
   addSHACL(store: RDF.DatasetCore) { addSHACL(this, store); }
 
-  build(): Ontology {
-    return new Ontology(
+  build(): Schema {
+    return new Schema(
       this.rulesBuilder.build(),
       this.suggestibleBuilder.build()
     )
@@ -28,12 +28,12 @@ export default class OntologyBuilder {
     const schemaNs = rdfNamespace("http://schema.org/");
 
     for (const quad of store.match(null, schemaNs.domainIncludes, null, $defaultGraph)) {
-      this.suggestibleBuilder.addExistingType(quad.object, OntologyBuilder.descriptionOf(store, quad.object));
-      this.suggestibleBuilder.addTypePath(quad.object, quad.subject as RDF.NamedNode, OntologyBuilder.descriptionOf(store, quad.subject));
+      this.suggestibleBuilder.addExistingType(quad.object, SchemaBuilder.descriptionOf(store, quad.object));
+      this.suggestibleBuilder.addTypePath(quad.object, quad.subject as RDF.NamedNode, SchemaBuilder.descriptionOf(store, quad.subject));
     }
 
     for (const quad of store.match(null, schemaNs.rangeIncludes, null, $defaultGraph)) {
-      this.suggestibleBuilder.addExistingType(quad.object, OntologyBuilder.descriptionOf(store, quad.object));
+      this.suggestibleBuilder.addExistingType(quad.object, SchemaBuilder.descriptionOf(store, quad.object));
       this.suggestibleBuilder.addTypePathTarget(
         null, quad.subject as RDF.NamedNode, { type: quad.object }
       )
