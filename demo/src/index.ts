@@ -1,8 +1,19 @@
-import { EditorView } from "@codemirror/view";
-import { PREC_SHAPE_GRAPH_LINK } from "./things";
-import makeFlexibleTurtleEditor from "./ShacledTurtleEditor-Flexible";
-import { DebugInformation } from "shacled-turtle";
-import { termToString } from "rdf-string";
+import ContextCodeEditor, { initialDocument } from "./ContextCodeEditor";
+import { ViewUpdate, ViewPlugin, EditorView } from "@codemirror/view"
+import { changeSchema, parseDocument } from "shacled-turtle";
+import * as RDF from "@rdfjs/types";
+
+const shaclWrapper = document.getElementById("editor_shacl")!;
+const dataWrapper = document.getElementById("editor_data")!;
+
+const shaclGraph = "https://gist.githubusercontent.com/BruJu/08d39fc77b6eeea8ecd5a632409940f6/raw/1515bb5c59516d68f10c0d06a7dcce67ffc818d1/shacl.shape.ttl";
+
+const minHeightEditor = EditorView.theme({
+  "&": {height: "400px", "max-height": "400px", width: "700px"},
+  ".cm-scroller": {overflow: "auto"},
+  ".cm-content, .cm-gutter": {"max-height": "400px"}
+});
+
 
 const theme = EditorView.theme({
   "&": { height: "600px" },
@@ -10,65 +21,72 @@ const theme = EditorView.theme({
   ".cm-content, .cm-gutter": { minHeight: "600px" }
 });
 
-function injectDebugInfoInDocument(debugInfo: DebugInformation) {
-  const pathEl = document.getElementById('current_path');
-  if (pathEl === null) return;
+const dataEditor = new ContextCodeEditor(dataWrapper,
+  [minHeightEditor],
+  undefined,
+initialDocument() +
+`ex:Alice rdf:type ex:Person ; 
+# If you start typing "ex:", both ex:name and ex:memberOf will be suggested
   
-  const subjectEl = document.getElementById('current_subject')!;
-  const typesEl = document.getElementById('current_subject_types')!;
-
-  pathEl.innerHTML = "";
-  subjectEl.innerHTML = "";
-  typesEl.innerHTML = "";
-
-  pathEl.appendChild(document.createTextNode(debugInfo.hierarchy));
-
-  let subjectDisplay: string;
-  let typesText: string;
-  if (debugInfo.subject !== null) {
-    subjectDisplay = debugInfo.subject.text;
-    subjectDisplay += " -> " + termToString(debugInfo.subject.term);
-
-    typesText = "Types=["
-      + debugInfo.subject.types.map(term => termToString(term)).join(", ") + "]"
-      + " Shapes=["
-      + debugInfo.subject.shapes.map(term => termToString(term)).join(", ") + "]";
-  } else {
-    subjectDisplay = "No subject";
-    typesText = "";
-  }
-
-  subjectEl.appendChild(document.createTextNode(subjectDisplay));  
-  typesEl.appendChild(document.createTextNode(typesText));
-
-  const obj = document.getElementById("current_object_types");
-  if (obj !== null) {
-    let txt: string;
-    if (debugInfo.object !== null) {
-      txt = "Types=["
-        + debugInfo.object.types.map(term => termToString(term)).join(", ") + "]"
-        + " Shapes=["
-        + debugInfo.object.shapes.map(term => termToString(term)).join(", ") + "]";
-    } else {
-      txt = "";
-    }
-
-    obj.innerHTML = "";
-    obj.appendChild(document.createTextNode(txt));
-  }
-}
-
-
-makeFlexibleTurtleEditor(
-  document.getElementById("editor")!,
-  document.getElementById("shape_url")! as HTMLInputElement,
-  document.getElementById("shape_url_button")! as HTMLButtonElement,
-  PREC_SHAPE_GRAPH_LINK,
-  [theme],
-  {
-    onDebugInfo: injectDebugInfoInDocument
-  }
+.
+`
 );
 
-document.getElementById("prec_shacl_graph")!
-.setAttribute("href", PREC_SHAPE_GRAPH_LINK)
+const initialShapeGraph = `@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix ex: <http://www.example.org/> .
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+
+
+# A Person in SHACL
+ex:PersonShape a sh:NodeShape ;
+  sh:targetClass ex:Person ;
+  # can have a name
+  sh:property [
+    sh:path ex:name ;
+    sh:nodeKind sh:Literal ;
+    sh:name "Name" ;
+    sh:description "The name of a person"
+  ] .
+
+# Organization membership in RDFS
+ex:memberOf
+  rdfs:domain ex:Person ;
+  rdfs:range ex:Organization ;
+  rdfs:label "Member of an organization" ;
+  rdfs:comment "Links a person with an organization that they are member of." .
+
+ex:founder
+  rdfs:domain ex:Organization ;
+  rdfs:range ex:Person ;
+  rdfs:label "Founder of the organization" ;
+  rdfs:comment "The person who founded the organization." .
+`;
+
+let currentShapeGraph: RDF.Quad[] = [];
+
+function updateShapeGraph(turtleDocument: string) {
+  currentShapeGraph = parseDocument(turtleDocument);
+  changeSchema(dataEditor.view.state, currentShapeGraph);
+}
+
+updateShapeGraph(initialShapeGraph);
+
+const onEditContextPlugin = ViewPlugin.fromClass(class {
+  update(update: ViewUpdate) {
+    if (update.docChanged) {
+      const docContent = update.view.state.sliceDoc();
+      updateShapeGraph(docContent);
+    }
+  }
+});
+
+const shaclEditor = new ContextCodeEditor(
+  shaclWrapper,
+  [onEditContextPlugin, minHeightEditor],
+  undefined,
+  initialShapeGraph
+);
+
+shaclEditor.changeSchema(shaclGraph);

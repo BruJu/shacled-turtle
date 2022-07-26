@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>SHACLed Turtle Editor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css">
+  </head>
+  <body>
+    <section class="section">
+      <div class="container content">
+        <h1 class="title is-1">SHACLed Turtle Editor</h1>
+
+        <p>
+          This page displays a Turtle code editor that uses Code Completion
+          based on the content of a SHACL graph. By default, the used shape
+          graph is the <a id="prec_shacl_graph">shape graph</a> used to validate
+          <a href="https://github.com/BruJu/PREC">PREC contexts</a>.
+        </p>
+
+        <div class="field is-grouped">
+          <p class="control is-expanded">
+            <input class="input" type="text" placeholder="Shape graph URL" id="shape_url">
+          </p>
+          <p class="control">
+            <a class="button is-info" id="shape_url_button">
+              Change Shape Graph
+            </a>
+          </p>
+        </div>
+        
+        <p>
+          Hierarchy: <span id="current_path"></span>
+          <br>Subject: <span id="current_subject"></span>
+          <br>Types of subject: <span id="current_subject_types"></span>
+          <br>Types of object: <span id="current_object_types"></span>
+        </p>
+
+        <div id="editor"></div>
+      </div>
+    </section>
+
+    <script type="module" src="with-debug-state.ts"></script>
+  </body>
+</html>
