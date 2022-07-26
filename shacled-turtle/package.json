@@ -1,6 +1,6 @@
 {
   "name": "shacled-turtle",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Code Mirror Turtle language support with autocompletion",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -23,6 +23,10 @@
     "url": "https://github.com/BruJu/shacled-turtle",
     "directory": "shacled-turtle"
   },
+  "bugs": {
+    "url": "https://github.com/BruJu/shacled-turtle/issues"
+  },
+  "homepage": "https://github.com/BruJu/shacled-turtle#readme",
   "author": "Julian Bruyat <julian.bruyat@insa-lyon.fr>",
   "license": "(CECILL-B or MIT)",
   "devDependencies": {

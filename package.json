@@ -1,11 +1,13 @@
 {
-  "name": "prec-demo",
+  "name": "shacled-turtle-full",
   "workspaces": [
     "demo",
     "lang-turtle",
     "shacled-turtle"
   ],
   "devDependencies": {
+    "buffer": "^6.0.3",
+    "events": "^3.3.0",
     "process": "^0.11.10"
   },
   "dependencies": {

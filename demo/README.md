@@ -1,4 +1,4 @@
-# PREC and Shacled Turtle demonstration website
+# Shacled Turtle demonstration website
 
 Frontend code for Shacled Turtle demonstration.
 

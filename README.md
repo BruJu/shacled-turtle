@@ -6,8 +6,6 @@ an RDFS + SHACL graph to provide auto completion.
 
 ***You can test Shacled Turtle online on this page: https://bruy.at/demo/shacled-turtle/demo.html***
 
-***You can also participate to an evaluation: https://shacled-turtle-eval.bruy.at/***
-
 
 ## Getting started
 
@@ -23,8 +21,6 @@ an RDFS + SHACL graph to provide auto completion.
 demos:
   - The *index* demo with a code editor. You are able to test the autocompletion
   and modify the schema graph
-  - The *prec-demo* demo that provides a GUI for PREC context. This page
-  requires the *precdemo-backend* to be started.
 
 - [lang-turtle](lang-turtle) is the basic turtle language support for Code
 Mirror. It only provide syntactic coloration

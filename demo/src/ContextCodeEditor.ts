@@ -18,7 +18,7 @@ const ns = {
 
 
 /**
- * A Code Editor backed by CodeMirror6 specialized in PREC Context writing.
+ * A Code Editor backed by CodeMirror6 and Shacled Turtle.
  */
 export default class ContextCodeEditor {
   readonly view: EditorView;
