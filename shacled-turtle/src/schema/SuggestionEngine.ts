@@ -13,8 +13,13 @@ export type Suggestion = {
   description: Description;
 };
 
+export class FollowingSuggestion {
+  description: Description = new Description();
+  object: TypesAndShapes = new TypesAndShapes();
+};
+
 /** A mapping of suggestible terms to their description */
-export class Suggestions {
+export class PossiblePredicates {
   private readonly map: TermMap<RDF.Term, FollowingSuggestion> = new TermMap();
 
   add(term: RDF.Term, description: Description) {
@@ -27,11 +32,11 @@ export class Suggestions {
     .object.addAll(object);
   }
 
-  static get(...suggestions: Suggestions[]): Suggestion[] {
+  static toSuggestions(...possiblePredicatess: PossiblePredicates[]): Suggestion[] {
     let res = new TermMap<RDF.Term, Description>();
     
-    for (const suggestion of suggestions) {
-      for (const [key, value] of suggestion.map) {
+    for (const possiblePredicates of possiblePredicatess) {
+      for (const [key, value] of possiblePredicates.map) {
         getWithDefault(res, key, () => new Description())
         .addAll(value.description);
       }
@@ -56,21 +61,21 @@ export class Suggestions {
   }
 }
 
-export class FollowingSuggestion {
-  description: Description = new Description();
-  object: TypesAndShapes = new TypesAndShapes();
-};
-
 export default class SuggestionEngine {
-  private readonly existingTypes: Suggestion[];
+  /** List of types that exist in the system */
   private readonly subjectTypingPredicates: Suggestion[];
-  private readonly followingTypePaths: TermMap<RDF.NamedNode, Suggestions>;
-  private readonly followingShapePaths: TermMap<RDF.Term, Suggestions>;
+  /** List of predicates that gives a type or a shape to the subject */
+  private readonly existingTypes: Suggestion[];
+  /** List of possible predicates for all known types */
+  private readonly followingTypePaths: TermMap<RDF.NamedNode, PossiblePredicates>;
+  /** List of possible predicates for all known shapes */
+  private readonly followingShapePaths: TermMap<RDF.Term, PossiblePredicates>;
+    /** Types and shapes that the object might have for a given predicate, without consideration on the subject */
   private readonly endFromAny: TermMap<RDF.Term, TypesAndShapes>;
 
   constructor(builder: SuggestionEngineBuilder) {
-    this.existingTypes = Suggestions.get(builder.existingTypes);
-    this.subjectTypingPredicates = Suggestions.get(builder.subjectTypingPredicates);
+    this.existingTypes = PossiblePredicates.toSuggestions(builder.existingTypes);
+    this.subjectTypingPredicates = PossiblePredicates.toSuggestions(builder.subjectTypingPredicates);
     this.followingTypePaths = builder.followingTypePaths;
     this.followingShapePaths = builder.followingShapePaths;
     this.endFromAny = builder.endFromAny;
@@ -85,8 +90,8 @@ export default class SuggestionEngine {
   }
 
   getAllPathsFor(subject: TypesAndShapes): Suggestion[] {
-    function mapKind(set: TermSet, following: TermMap<RDF.Term, Suggestions>) {
-      let result: Suggestions[] = [];
+    function mapKind(set: TermSet, following: TermMap<RDF.Term, PossiblePredicates>) {
+      let result: PossiblePredicates[] = [];
 
       for (const term of set) {
         const x = following.get(term);
@@ -103,13 +108,13 @@ export default class SuggestionEngine {
     const mappedTypes = mapKind(subject.types, this.followingTypePaths);
     const mappedShapes = mapKind(subject.shapes, this.followingShapePaths);
 
-    return Suggestions.get(...mappedTypes, ...mappedShapes);
+    return PossiblePredicates.toSuggestions(...mappedTypes, ...mappedShapes);
   }
 
   getPossibleObjectShape(subject: TypesAndShapes, predicate: RDF.Term): TypesAndShapes {
     let result = new TypesAndShapes();
 
-    function process(suggestions: Suggestions | undefined) {
+    function process(suggestions: PossiblePredicates | undefined) {
       if (suggestions === undefined) return;
 
       const afterPath = suggestions.getAfterPath(predicate);
@@ -135,28 +140,31 @@ export default class SuggestionEngine {
   }
 }
 
+/** A set of types and shapes */
 export class TypesAndShapes {
   static from(types: TermSet<RDF.Term>, shapes: TermSet<RDF.Term>): TypesAndShapes {
-    const x = new TypesAndShapes();
+    const self = new TypesAndShapes();
 
     for (const type of types) {
-      x.types.add(type);
+      self.types.add(type);
     }
 
     for (const shape of shapes) {
-      x.shapes.add(shape);
+      self.shapes.add(shape);
     }
 
-    return x;
+    return self;
   }
 
   readonly types = new TermSet();
   readonly shapes = new TermSet();
 
+  /** Return true if there are no types nor shapes*/
   isEmpty() {
     return this.types.size === 0 && this.shapes.size === 0;
   }
 
+  /** Add all types and shapes in source in this instance */
   addAll(source: TypesAndShapes) {
     for (const srcType of source.types) {
       this.types.add(srcType);
@@ -166,7 +174,4 @@ export class TypesAndShapes {
       this.shapes.add(srcShape);
     }
   }
-
-
-
 };

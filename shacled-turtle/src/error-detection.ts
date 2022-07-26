@@ -7,7 +7,7 @@ class RangedErrors {
 
   addError(from: number, to: number) {
     // addError is called through a tree exploration. Therefore, it is in
-    // practice impossible to have overlapping intervals such as one of
+    // practice impossible to have overlapping intervals such that one of
     // the interval is not included in the second one.
     for (const existing of this.knownIntervals) {
       if (existing.from <= from && existing.to >= to) return;
