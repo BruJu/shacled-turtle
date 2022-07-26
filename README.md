@@ -1,5 +1,7 @@
 # SHACLed Turtle
 
+[![DOI](https://zenodo.org/badge/436688475.svg)](https://zenodo.org/badge/latestdoi/436688475)
+
 Turtle language support for [Code Mirror 6](https://codemirror.net/6/) that uses
 an RDFS + SHACL graph to provide auto completion.
 
